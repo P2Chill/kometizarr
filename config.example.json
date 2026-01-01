@@ -1,0 +1,88 @@
+{
+  "plex": {
+    "url": "http://192.168.1.20:32400",
+    "token": "YOUR_PLEX_TOKEN_HERE",
+    "library": "Movies"
+  },
+  "apis": {
+    "tmdb": {
+      "api_key": "YOUR_TMDB_API_KEY_HERE"
+    },
+    "omdb": {
+      "api_key": "YOUR_OMDB_API_KEY_HERE",
+      "enabled": false
+    },
+    "tvdb": {
+      "api_key": "YOUR_TVDB_API_KEY_HERE",
+      "enabled": false
+    }
+  },
+  "rating_overlay": {
+    "enabled": true,
+    "sources": {
+      "tmdb": true,
+      "imdb": false,
+      "rotten_tomatoes": false,
+      "tvdb": false
+    },
+    "badge": {
+      "style": "default",
+      "position": "northeast",
+      "format": "star"
+    },
+    "episodes": {
+      "enabled": false
+    }
+  },
+  "collections": {
+    "enabled": true,
+    "dry_run": true,
+    "decades": {
+      "enabled": true,
+      "ranges": [
+        {"title": "1980s Movies", "start": 1980, "end": 1989},
+        {"title": "1990s Movies", "start": 1990, "end": 1999},
+        {"title": "2000s Movies", "start": 2000, "end": 2009},
+        {"title": "2010s Movies", "start": 2010, "end": 2019},
+        {"title": "2020s Movies", "start": 2020, "end": 2029}
+      ]
+    },
+    "top_lists": {
+      "enabled": false,
+      "imdb_top_250": {
+        "enabled": false,
+        "source": "https://www.imdb.com/chart/top/"
+      },
+      "rt_top_100": {
+        "enabled": false,
+        "source": "https://www.rottentomatoes.com/top/bestofrt/"
+      }
+    },
+    "studios": {
+      "enabled": false,
+      "collections": [
+        {
+          "title": "Marvel Cinematic Universe",
+          "studios": ["Marvel Studios"]
+        },
+        {
+          "title": "DC Extended Universe",
+          "studios": ["DC Comics", "DC Entertainment", "Warner Bros."]
+        },
+        {
+          "title": "Disney Classics",
+          "studios": ["Walt Disney Pictures", "Walt Disney Animation Studios"]
+        }
+      ]
+    }
+  },
+  "output": {
+    "directory": "/tmp/rated_posters",
+    "quality": 95,
+    "backup_originals": true
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "kometizarr.log"
+  }
+}
