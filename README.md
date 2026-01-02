@@ -212,21 +212,15 @@ Same API, just use `library_name='TV Shows'` - works identically!
 
 ## 🎯 Why Kometizarr?
 
-### Kometa Problems ❌
-- Complex YAML configurations (dozens of files)
-- Slow processing (hours for large libraries)
-- Can break Plex databases (risky concurrent access)
-- No easy rollback
-- Limited rating sources
-- Static tomato icons (don't change with score)
+Kometizarr is designed to be a lightweight, focused alternative for rating overlays:
 
-### Kometizarr Solutions ✅
-- **Simple:** One config.json file
-- **Fast:** Direct API calls, efficient processing
-- **Safe:** Official Plex API, automatic backups, atomic operations
-- **Flexible:** Easy restoration, dry-run mode, skip processed items
-- **Beautiful:** Multi-source ratings, dynamic RT logos, perfect design
-- **Modern:** Clean Python code, not YAML spaghetti
+- **Simple Configuration:** Single JSON config file, no complex YAML hierarchy
+- **Fast Processing:** Direct API calls with efficient rate limiting (~1 item/second)
+- **Safe Operations:** Official Plex API, automatic backups, atomic operations
+- **Flexible Workflows:** Easy restoration, dry-run mode, skip processed items
+- **Beautiful Design:** Multi-source ratings (TMDB, IMDb, RT), dynamic RT logos that change based on score
+- **Modern Stack:** Clean Python code with optional Web UI (React + FastAPI)
+- **Plex-First Ratings:** Extracts ratings from Plex metadata before hitting external APIs (97%+ success rate)
 
 ## 📁 Project Structure
 

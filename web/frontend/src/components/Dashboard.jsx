@@ -157,9 +157,14 @@ function Dashboard({ onStartProcessing }) {
               id="force-checkbox"
             />
             <label htmlFor="force-checkbox" className="text-sm">
-              Force reprocess (reprocess items that already have overlays)
+              Force reprocess (updates existing overlays with fresh ratings)
             </label>
           </div>
+          {force && (
+            <div className="mt-2 p-3 bg-blue-900/20 border border-blue-700/50 rounded text-sm text-blue-300">
+              ℹ️ This will restore original posters from backup before applying fresh overlays. Useful for updating ratings.
+            </div>
+          )}
 
           {/* Start Button */}
           <button

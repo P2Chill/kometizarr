@@ -157,6 +157,17 @@ class PlexPosterManager:
                 logger.debug(f"⏭️  {movie.title}: Already processed (use force=True to reprocess)")
                 return False
 
+            # If force=True and backup exists, restore original poster first before applying new overlay
+            # This prevents double overlays and ensures we get fresh ratings
+            if force and self.backup_manager.has_backup(self.library_name, movie.title):
+                logger.info(f"🔄 {movie.title}: Restoring original poster before reprocessing")
+                if not self.backup_manager.restore_original(self.library_name, movie.title, movie):
+                    logger.warning(f"⚠️  {movie.title}: Failed to restore original, skipping reprocess")
+                    return False
+                # Small delay to ensure Plex updates the poster URL
+                import time
+                time.sleep(1)
+
             # PRIORITY 1: Try to get ALL ratings from Plex's own metadata FIRST (fastest, most reliable)
             # This works for both movies AND TV shows and has ~100% coverage
             plex_ratings = self._extract_plex_ratings(movie)
