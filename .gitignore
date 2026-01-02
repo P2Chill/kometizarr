@@ -56,6 +56,7 @@ htmlcov/
 *.png
 !docs/**/*.png
 !docs/**/*.jpg
+!web/frontend/public/favicon-32x32.png
 
 # OS
 .DS_Store
