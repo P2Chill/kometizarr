@@ -66,7 +66,7 @@ async def root():
 
 @app.get("/api/libraries")
 async def get_libraries():
-    """Get all Plex libraries"""
+    """Get all Plex libraries - optimized for speed"""
     try:
         from plexapi.server import PlexServer
 
@@ -83,7 +83,8 @@ async def get_libraries():
             libraries.append({
                 "name": lib.title,
                 "type": lib.type,
-                "count": len(lib.all())
+                # Use totalSize instead of len(all()) - avoids fetching all items
+                "count": lib.totalSize if hasattr(lib, 'totalSize') else 0
             })
 
         return {"libraries": libraries}
