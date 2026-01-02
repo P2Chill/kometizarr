@@ -160,12 +160,12 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
               id="force-checkbox"
             />
             <label htmlFor="force-checkbox" className="text-sm">
-              Force reprocess (updates existing overlays with fresh ratings)
+              Force reprocess (resets posters before re-applying overlays with fresh ratings)
             </label>
           </div>
           {force && (
             <div className="mt-2 p-3 bg-blue-900/20 border border-blue-700/50 rounded text-sm text-blue-300">
-              ℹ️ This will restore original posters from backup before applying fresh overlays. Useful for updating ratings.
+              ℹ️ Restores original posters from backup, then applies fresh overlays with updated ratings.
             </div>
           )}
 
