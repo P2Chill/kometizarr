@@ -352,15 +352,21 @@ manager.process_library()  # Preview without applying
 - [x] Automatic backups and restoration
 - [x] Beautiful overlay design with proper alignment
 - [x] Rate limiting and API safety
-- [x] Collection management (decades, studios, keywords)
+- [x] Collection management (decades, studios, keywords, genres)
+- [x] **Web UI** - React dashboard with FastAPI backend
+- [x] **Real-time progress** - WebSocket updates for live tracking
+- [x] **Docker deployment** - Docker Compose + Terraform support
+- [x] **Smart library detection** - Auto-detect movie vs TV show libraries
+- [x] **Network/Studio presets** - 13 streaming services + 12 movie studios
+- [x] **Collection visibility controls** - Hide collections from library view
+- [x] **Modal-based creation** - Select which collections to create (no auto-duplication)
 
 ### Planned 🚧
-- [ ] Web UI for configuration
 - [ ] Per-episode ratings for TV shows
 - [ ] Scheduled updates (refresh ratings periodically)
 - [ ] Custom badge themes
 - [ ] Integration with Tautulli for viewing stats
-- [ ] Docker container for easy deployment
+- [ ] Genre-based smart collections
 
 ## 🤝 Contributing
 
