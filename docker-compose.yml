@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./web/backend
+    container_name: kometizarr-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app/kometizarr  # Mount entire project
+      - /tmp/kometizarr_backups:/backups  # Poster backups
+      - /tmp/kometizarr_temp:/temp  # Temp processing
+    environment:
+      - PLEX_URL=${PLEX_URL:-http://192.168.1.20:32400}
+      - PLEX_TOKEN=${PLEX_TOKEN}
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - OMDB_API_KEY=${OMDB_API_KEY}
+      - MDBLIST_API_KEY=${MDBLIST_API_KEY}
+    restart: unless-stopped
+    networks:
+      - kometizarr
+
+  frontend:
+    build: ./web/frontend
+    container_name: kometizarr-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - kometizarr
+
+networks:
+  kometizarr:
+    driver: bridge

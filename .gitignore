@@ -37,6 +37,7 @@ env/
 config.json
 *.env
 .env.local
+!.env.example
 
 # Temporary files
 /tmp/
@@ -59,3 +60,19 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+terraform/*.auto.tfvars
+
+# Docker
+.dockerignore
+
+# Node modules (for web frontend)
+web/frontend/node_modules/
+web/frontend/dist/
+web/frontend/.vite/

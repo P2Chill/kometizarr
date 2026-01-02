@@ -14,17 +14,20 @@ class RatingFetcher:
 
     TMDB_BASE_URL = "https://api.themoviedb.org/3"
     OMDB_BASE_URL = "http://www.omdbapi.com/"
+    MDBLIST_BASE_URL = "https://mdblist.com/api"
 
-    def __init__(self, tmdb_api_key: str, omdb_api_key: Optional[str] = None):
+    def __init__(self, tmdb_api_key: str, omdb_api_key: Optional[str] = None, mdblist_api_key: Optional[str] = None):
         """
         Initialize rating fetcher
 
         Args:
             tmdb_api_key: TMDB API key (required)
             omdb_api_key: OMDb API key (optional, for IMDb/RT ratings)
+            mdblist_api_key: MDBList API key (optional, for RT audience scores)
         """
         self.tmdb_api_key = tmdb_api_key
         self.omdb_api_key = omdb_api_key
+        self.mdblist_api_key = mdblist_api_key
 
     def fetch_tmdb_rating(self, tmdb_id: int, media_type: str = 'movie') -> Optional[Dict]:
         """
@@ -130,4 +133,45 @@ class RatingFetcher:
             return result
         except Exception as e:
             print(f"✗ Error fetching OMDb rating: {e}")
+            return None
+
+    def fetch_mdblist_rating(self, imdb_id: str) -> Optional[Dict]:
+        """
+        Fetch RT ratings from MDBList (includes both critic and audience scores)
+
+        Args:
+            imdb_id: IMDb ID (e.g., 'tt0111161')
+
+        Returns:
+            Dict with rt_critic, rt_audience scores, or None if error
+        """
+        if not self.mdblist_api_key:
+            print("⚠️  MDBList API key not configured")
+            return None
+
+        url = f"{self.MDBLIST_BASE_URL}/?apikey={self.mdblist_api_key}&i={imdb_id}"
+
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+
+            result = {}
+
+            # MDBList returns ratings in format like: ratings[0].source = "tomatoes", ratings[0].value = 85
+            ratings_data = data.get('ratings', [])
+
+            for rating in ratings_data:
+                source = rating.get('source', '').lower()
+                value = rating.get('value')
+
+                if source == 'tomatoes' and value:
+                    result['rt_critic'] = float(value)
+                elif source == 'tomatoesaudience' and value:
+                    result['rt_audience'] = float(value)
+
+            return result if result else None
+
+        except Exception as e:
+            print(f"✗ Error fetching MDBList rating: {e}")
             return None

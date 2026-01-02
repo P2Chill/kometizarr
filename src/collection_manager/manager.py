@@ -11,6 +11,7 @@ from plexapi.server import PlexServer
 from plexapi.library import LibrarySection
 from plexapi.collection import Collection
 from plexapi.exceptions import NotFound
+from .tmdb_helper import TMDBHelper
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class CollectionManager:
     without risking library corruption.
     """
 
-    def __init__(self, plex_url: str, plex_token: str, library_name: str, dry_run: bool = False):
+    def __init__(self, plex_url: str, plex_token: str, library_name: str, dry_run: bool = False, tmdb_api_key: Optional[str] = None):
         """
         Initialize collection manager
 
@@ -32,6 +33,7 @@ class CollectionManager:
             plex_token: Plex authentication token
             library_name: Library name (e.g., 'Movies')
             dry_run: If True, preview operations without applying changes
+            tmdb_api_key: TMDB API key (required for keyword collections)
         """
         self.plex_url = plex_url
         self.plex_token = plex_token
@@ -41,6 +43,9 @@ class CollectionManager:
         # Connect to Plex
         self.server = PlexServer(plex_url, plex_token)
         self.library = self.server.library.section(library_name)
+
+        # Initialize TMDB helper if API key provided
+        self.tmdb = TMDBHelper(tmdb_api_key) if tmdb_api_key else None
 
         logger.info(f"Connected to Plex: {self.server.friendlyName}")
         logger.info(f"Library: {library_name} ({len(self.library.all())} items)")
@@ -195,11 +200,14 @@ class CollectionManager:
 
             logger.info(f"\nProcessing decade: {title} ({start_year}-{end_year})")
 
-            # Search for items in year range
-            items = self.library.search(
-                year__gte=start_year,
-                year__lte=end_year
-            )
+            # Get all items and filter by year manually (PlexAPI year filters are broken)
+            all_items = self.library.all()
+            items = [
+                item for item in all_items
+                if hasattr(item, 'year') and item.year and start_year <= item.year <= end_year
+            ]
+
+            logger.info(f"  Found {len(items)} items in year range {start_year}-{end_year}")
 
             if not items:
                 logger.warning(f"No items found for {title}")
@@ -260,6 +268,153 @@ class CollectionManager:
                 items=unique_items,
                 description=f"Movies from {', '.join(studio_names)}",
                 sort_title=f"!Studio {title}"
+            )
+
+            if collection:
+                created_collections.append(collection)
+
+        return created_collections
+
+    def _match_tmdb_ids_to_plex(self, tmdb_ids: List[int]) -> List:
+        """
+        Match TMDB IDs to Plex items
+
+        Args:
+            tmdb_ids: List of TMDB movie IDs
+
+        Returns:
+            List of Plex items that match the TMDB IDs
+        """
+        matched_items = []
+        all_items = self.library.all()
+
+        for item in all_items:
+            # Get item GUIDs (Plex stores TMDB IDs here)
+            for guid in item.guids:
+                if 'tmdb://' in guid.id:
+                    # Extract TMDB ID from guid like "tmdb://12345"
+                    item_tmdb_id = int(guid.id.split('tmdb://')[1])
+                    if item_tmdb_id in tmdb_ids:
+                        matched_items.append(item)
+                        break
+
+        return matched_items
+
+    def create_keyword_collections(self, keyword_collections: List[Dict]) -> List[Collection]:
+        """
+        Create keyword-based collections using TMDB
+
+        Args:
+            keyword_collections: List of keyword configs:
+                [
+                    {"title": "Zombies", "keyword_id": 12377, "description": "Movies featuring the undead"},
+                    {"title": "Time Travel", "keyword_id": 4379}
+                ]
+
+        Returns:
+            List of created collections
+        """
+        if not self.tmdb:
+            logger.error("TMDB API key not configured - cannot create keyword collections")
+            return []
+
+        created_collections = []
+
+        for keyword_config in keyword_collections:
+            title = keyword_config['title']
+            keyword_id = keyword_config.get('keyword_id')
+            collection_id = keyword_config.get('collection_id')
+            description = keyword_config.get('description', '')
+            sort_title = keyword_config.get('sort_title', f"!{title}")
+
+            logger.info(f"\nProcessing keyword collection: {title}")
+
+            # Fetch TMDB IDs
+            if keyword_id:
+                logger.info(f"  Fetching movies with keyword ID {keyword_id}...")
+                tmdb_ids = self.tmdb.get_movies_by_keyword(keyword_id)
+            elif collection_id:
+                logger.info(f"  Fetching TMDB collection {collection_id}...")
+                tmdb_ids = self.tmdb.get_movies_in_collection(collection_id)
+            else:
+                logger.warning(f"No keyword_id or collection_id specified for '{title}'")
+                continue
+
+            if not tmdb_ids:
+                logger.warning(f"No TMDB movies found for {title}")
+                continue
+
+            logger.info(f"  Found {len(tmdb_ids)} movies on TMDB, matching to Plex...")
+
+            # Match TMDB IDs to Plex items
+            items = self._match_tmdb_ids_to_plex(tmdb_ids)
+
+            if not items:
+                logger.warning(f"No matching items found in Plex for {title}")
+                continue
+
+            logger.info(f"  Matched {len(items)} items in Plex library")
+
+            # Create collection
+            collection = self.create_collection(
+                title=title,
+                items=items,
+                description=description,
+                sort_title=sort_title
+            )
+
+            if collection:
+                created_collections.append(collection)
+
+        return created_collections
+
+    def create_genre_collections(self, genre_collections: List[Dict]) -> List[Collection]:
+        """
+        Create collections based on multiple genre filters
+
+        Args:
+            genre_collections: List of genre configs:
+                [
+                    {"title": "True Crime", "genres": ["Crime", "Documentary"]},
+                    {"title": "Horror Mystery", "genres": ["Horror", "Mystery"]}
+                ]
+
+        Returns:
+            List of created collections
+        """
+        created_collections = []
+
+        for genre_config in genre_collections:
+            title = genre_config['title']
+            genres = genre_config['genres']
+            description = genre_config.get('description', '')
+            sort_title = genre_config.get('sort_title', f"!{title}")
+
+            logger.info(f"\nProcessing genre collection: {title}")
+            logger.info(f"  Filtering by genres: {', '.join(genres)}")
+
+            # Get all items and filter by all genres
+            all_items = self.library.all()
+            items = []
+
+            for item in all_items:
+                # Check if item has ALL required genres
+                item_genres = [g.tag for g in item.genres] if hasattr(item, 'genres') else []
+                if all(genre in item_genres for genre in genres):
+                    items.append(item)
+
+            if not items:
+                logger.warning(f"No items found with genres {genres}")
+                continue
+
+            logger.info(f"  Found {len(items)} items matching all genres")
+
+            # Create collection
+            collection = self.create_collection(
+                title=title,
+                items=items,
+                description=description or f"Movies with {' + '.join(genres)}",
+                sort_title=sort_title
             )
 
             if collection:
@@ -331,7 +486,8 @@ def main():
         plex_url=config['plex']['url'],
         plex_token=config['plex']['token'],
         library_name=config['plex']['library'],
-        dry_run=args.dry_run or config['collections'].get('dry_run', False)
+        dry_run=args.dry_run or config['collections'].get('dry_run', False),
+        tmdb_api_key=config['apis']['tmdb']['api_key']
     )
 
     # Create decade collections
@@ -352,6 +508,26 @@ def main():
 
         manager.create_studio_collections(
             config['collections']['studios']['collections']
+        )
+
+    # Create keyword collections
+    if config['collections'].get('keywords', {}).get('enabled'):
+        logger.info("\n" + "=" * 60)
+        logger.info("Creating Keyword Collections")
+        logger.info("=" * 60)
+
+        manager.create_keyword_collections(
+            config['collections']['keywords']['collections']
+        )
+
+    # Create genre collections
+    if config['collections'].get('genres', {}).get('enabled'):
+        logger.info("\n" + "=" * 60)
+        logger.info("Creating Genre Collections")
+        logger.info("=" * 60)
+
+        manager.create_genre_collections(
+            config['collections']['genres']['collections']
         )
 
     logger.info("\n" + "=" * 60)
