@@ -4,6 +4,9 @@ function Collections({ selectedLibrary }) {
   const [collections, setCollections] = useState([])
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [showKeywordModal, setShowKeywordModal] = useState(false)
+  const [selectedPresets, setSelectedPresets] = useState([])
+  const [customKeywords, setCustomKeywords] = useState('')
 
   useEffect(() => {
     if (selectedLibrary) {
@@ -105,20 +108,63 @@ function Collections({ selectedLibrary }) {
     }
   }
 
+  const keywordPresets = [
+    { id: 'zombies', title: 'Zombies', keywords: ['zombie', 'zombies', 'undead'] },
+    { id: 'time-travel', title: 'Time Travel', keywords: ['time travel', 'time machine', 'time loop'] },
+    { id: 'superheroes', title: 'Superheroes', keywords: ['superhero', 'superheroes', 'comic book'] },
+    { id: 'space', title: 'Space Adventure', keywords: ['space', 'outer space', 'spacecraft', 'astronaut'] },
+    { id: 'heist', title: 'Heist', keywords: ['heist', 'robbery', 'bank robbery', 'casino'] },
+    { id: 'dinosaurs', title: 'Dinosaurs', keywords: ['dinosaur', 'dinosaurs', 'prehistoric'] }
+  ]
+
+  const openKeywordModal = () => {
+    setShowKeywordModal(true)
+    setSelectedPresets([])
+    setCustomKeywords('')
+  }
+
+  const togglePreset = (presetId) => {
+    setSelectedPresets(prev =>
+      prev.includes(presetId)
+        ? prev.filter(id => id !== presetId)
+        : [...prev, presetId]
+    )
+  }
+
   const createKeywordCollections = async () => {
     if (!selectedLibrary) return
 
-    setCreating(true)
-    try {
-      const keywords = [
-        { title: 'Zombies', keywords: ['zombie', 'zombies', 'undead'] },
-        { title: 'Time Travel', keywords: ['time travel', 'time machine', 'time loop'] },
-        { title: 'Superheroes', keywords: ['superhero', 'superheroes', 'comic book'] },
-        { title: 'Space Adventure', keywords: ['space', 'outer space', 'spacecraft', 'astronaut'] },
-        { title: 'Heist', keywords: ['heist', 'robbery', 'bank robbery', 'casino'] },
-        { title: 'Dinosaurs', keywords: ['dinosaur', 'dinosaurs', 'prehistoric'] }
-      ]
+    // Build keywords array from selected presets
+    const keywords = selectedPresets.map(id =>
+      keywordPresets.find(p => p.id === id)
+    ).filter(Boolean)
 
+    // Parse custom keywords (format: "Title: keyword1, keyword2")
+    if (customKeywords.trim()) {
+      const lines = customKeywords.trim().split('\n')
+      for (const line of lines) {
+        if (line.includes(':')) {
+          const [title, keywordStr] = line.split(':')
+          const keywordList = keywordStr.split(',').map(k => k.trim()).filter(Boolean)
+          if (title.trim() && keywordList.length > 0) {
+            keywords.push({
+              title: title.trim(),
+              keywords: keywordList
+            })
+          }
+        }
+      }
+    }
+
+    if (keywords.length === 0) {
+      alert('Please select at least one preset or add custom keywords')
+      return
+    }
+
+    setCreating(true)
+    setShowKeywordModal(false)
+
+    try {
       const res = await fetch('/api/collections/keyword', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -172,7 +218,7 @@ function Collections({ selectedLibrary }) {
             🎬 Create Studio Collections
           </button>
           <button
-            onClick={createKeywordCollections}
+            onClick={openKeywordModal}
             disabled={creating}
             className="bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition"
           >
@@ -225,6 +271,67 @@ function Collections({ selectedLibrary }) {
           </div>
         )}
       </div>
+
+      {/* Keyword Collections Modal */}
+      {showKeywordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setShowKeywordModal(false)}>
+          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 border border-gray-700" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold mb-4">Create Keyword Collections</h2>
+
+            {/* Preset checkboxes */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">Select Presets:</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {keywordPresets.map(preset => (
+                  <label key={preset.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPresets.includes(preset.id)}
+                      onChange={() => togglePreset(preset.id)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">{preset.title}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom keywords input */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Add Custom Keywords:</h3>
+              <p className="text-sm text-gray-400 mb-2">
+                Format: <code className="bg-gray-900 px-1 rounded">Title: keyword1, keyword2, keyword3</code>
+              </p>
+              <p className="text-xs text-gray-500 mb-3">
+                Example: <code className="bg-gray-900 px-1 rounded">Artificial Intelligence: AI, robot, android, cyborg</code>
+              </p>
+              <textarea
+                value={customKeywords}
+                onChange={(e) => setCustomKeywords(e.target.value)}
+                placeholder="Artificial Intelligence: AI, robot, android, cyborg&#10;Car Chases: car chase, racing, street racing"
+                rows="4"
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm"
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowKeywordModal(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createKeywordCollections}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition font-semibold"
+              >
+                Create Collections
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
