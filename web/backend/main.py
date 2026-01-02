@@ -233,7 +233,7 @@ async def broadcast_progress():
 
 @app.get("/api/collections")
 async def get_collections(library_name: str):
-    """Get all collections in a library"""
+    """Get all collections in a library - optimized for speed"""
     try:
         from plexapi.server import PlexServer
 
@@ -244,10 +244,12 @@ async def get_collections(library_name: str):
         library = server.library.section(library_name)
 
         collections = []
-        for collection in library.collections():
+        # Use search() instead of collections() - much faster as it doesn't load full metadata
+        for collection in library.search(libtype='collection'):
             collections.append({
                 "title": collection.title,
-                "count": len(collection.items()),
+                # Use childCount instead of len(items()) - avoids fetching all items
+                "count": collection.childCount if hasattr(collection, 'childCount') else 0,
                 "summary": collection.summary if hasattr(collection, 'summary') else ""
             })
 
