@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-function Dashboard({ onStartProcessing }) {
+function Dashboard({ onStartProcessing, onLibrarySelect }) {
   const [libraries, setLibraries] = useState([])
   const [selectedLibrary, setSelectedLibrary] = useState(null)
   const [stats, setStats] = useState(null)
@@ -15,6 +15,9 @@ function Dashboard({ onStartProcessing }) {
   useEffect(() => {
     if (selectedLibrary) {
       fetchStats(selectedLibrary.name)
+      if (onLibrarySelect) {
+        onLibrarySelect(selectedLibrary)
+      }
     }
   }, [selectedLibrary])
 
