@@ -261,7 +261,7 @@ async def get_collections(library_name: str):
 
 @app.get("/api/collections/{collection_title}/items")
 async def get_collection_items(collection_title: str, library_name: str):
-    """Get items in a specific collection"""
+    """Get first 10 items in a collection for preview"""
     try:
         from plexapi.server import PlexServer
 
@@ -274,16 +274,28 @@ async def get_collection_items(collection_title: str, library_name: str):
         # Get the collection
         collection = library.collection(collection_title)
 
-        # Get items in collection
+        # Get total count
+        total_count = collection.childCount if hasattr(collection, 'childCount') else 0
+
+        # Get just first 10 items for preview
         items = []
-        for item in collection.items():
+        limit = 10
+
+        for i, item in enumerate(collection.items()):
+            if i >= limit:
+                break
             items.append({
                 "title": item.title,
                 "year": item.year if hasattr(item, 'year') else None,
                 "rating": round(item.rating, 1) if hasattr(item, 'rating') and item.rating else None
             })
 
-        return {"items": items}
+        return {
+            "items": items,
+            "total": total_count,
+            "showing": len(items),
+            "has_more": total_count > len(items)
+        }
     except Exception as e:
         return {"error": str(e)}
 

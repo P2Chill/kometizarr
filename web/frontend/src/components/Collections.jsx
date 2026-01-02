@@ -9,6 +9,8 @@ function Collections({ selectedLibrary }) {
   const [customKeywords, setCustomKeywords] = useState('')
   const [expandedCollection, setExpandedCollection] = useState(null)
   const [collectionItems, setCollectionItems] = useState([])
+  const [itemsTotal, setItemsTotal] = useState(0)
+  const [itemsHasMore, setItemsHasMore] = useState(false)
 
   useEffect(() => {
     if (selectedLibrary) {
@@ -163,19 +165,32 @@ function Collections({ selectedLibrary }) {
     if (expandedCollection === collectionTitle) {
       setExpandedCollection(null)
       setCollectionItems([])
+      setItemsTotal(0)
+      setItemsHasMore(false)
       return
     }
 
     // Expand new collection
     setExpandedCollection(collectionTitle)
     setCollectionItems([]) // Clear previous items
+    setItemsTotal(0)
+    setItemsHasMore(false)
 
     // Fetch items
     try {
       const res = await fetch(`/api/collections/${encodeURIComponent(collectionTitle)}/items?library_name=${selectedLibrary.name}`)
       const data = await res.json()
+
+      // Only update if this collection is still the expanded one (prevents race condition)
       if (data.items) {
-        setCollectionItems(data.items)
+        setExpandedCollection(current => {
+          if (current === collectionTitle) {
+            setCollectionItems(data.items)
+            setItemsTotal(data.total || data.items.length)
+            setItemsHasMore(data.has_more || false)
+          }
+          return current
+        })
       }
     } catch (error) {
       console.error('Failed to fetch collection items:', error)
@@ -306,7 +321,7 @@ function Collections({ selectedLibrary }) {
             No collections yet. Create some using the buttons above!
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {collections.map((collection) => {
               const isExpanded = expandedCollection === collection.title
               return (
@@ -356,19 +371,26 @@ function Collections({ selectedLibrary }) {
                       {collectionItems.length === 0 ? (
                         <div className="text-gray-500 text-sm">Loading items...</div>
                       ) : (
-                        <div className="space-y-2">
-                          {collectionItems.map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-sm">
-                              <div className="text-gray-300">
-                                {item.title}
-                                {item.year && <span className="text-gray-500 ml-2">({item.year})</span>}
+                        <>
+                          <div className="space-y-2">
+                            {collectionItems.map((item, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-sm">
+                                <div className="text-gray-300">
+                                  {item.title}
+                                  {item.year && <span className="text-gray-500 ml-2">({item.year})</span>}
+                                </div>
+                                {item.rating && (
+                                  <div className="text-yellow-500 text-xs">★ {item.rating}</div>
+                                )}
                               </div>
-                              {item.rating && (
-                                <div className="text-yellow-500 text-xs">★ {item.rating}</div>
-                              )}
+                            ))}
+                          </div>
+                          {itemsHasMore && (
+                            <div className="mt-3 pt-3 border-t border-gray-800 text-gray-500 text-xs text-center">
+                              + {itemsTotal - collectionItems.length} more items (showing first {collectionItems.length} of {itemsTotal})
                             </div>
-                          ))}
-                        </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
