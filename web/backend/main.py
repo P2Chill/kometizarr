@@ -405,6 +405,56 @@ async def delete_collection(collection_title: str, library_name: str):
         return {"error": str(e)}
 
 
+@app.get("/api/library/{library_name}/studios")
+async def get_library_studios(library_name: str):
+    """Get all unique studios/networks in a library (for debugging)"""
+    try:
+        from plexapi.server import PlexServer
+
+        plex_url = os.getenv('PLEX_URL')
+        plex_token = os.getenv('PLEX_TOKEN')
+
+        server = PlexServer(plex_url, plex_token)
+        library = server.library.section(library_name)
+
+        # Get all items
+        all_items = library.all()
+
+        # For TV shows, use 'network' field; for movies, use 'studio' field
+        is_tv = library.type == 'show'
+        field_name = 'network' if is_tv else 'studio'
+
+        # Collect all unique studios/networks
+        studios = {}
+        for item in all_items:
+            if is_tv:
+                # TV shows - check network field
+                if hasattr(item, 'network') and item.network:
+                    value = item.network
+                    if value not in studios:
+                        studios[value] = 0
+                    studios[value] += 1
+            else:
+                # Movies - check studio field
+                if hasattr(item, 'studio') and item.studio:
+                    value = item.studio
+                    if value not in studios:
+                        studios[value] = 0
+                    studios[value] += 1
+
+        # Sort by count descending
+        sorted_studios = sorted(studios.items(), key=lambda x: x[1], reverse=True)
+
+        return {
+            "library": library_name,
+            "field": field_name,
+            "total_items": len(all_items),
+            "studios": [{"name": name, "count": count} for name, count in sorted_studios]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

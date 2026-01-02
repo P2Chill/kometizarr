@@ -5,7 +5,11 @@ function Collections({ selectedLibrary }) {
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [showKeywordModal, setShowKeywordModal] = useState(false)
+  const [showStudioModal, setShowStudioModal] = useState(false)
+  const [showDecadeModal, setShowDecadeModal] = useState(false)
   const [selectedPresets, setSelectedPresets] = useState([])
+  const [selectedStudios, setSelectedStudios] = useState([])
+  const [selectedDecades, setSelectedDecades] = useState([])
   const [customKeywords, setCustomKeywords] = useState('')
   const [expandedCollection, setExpandedCollection] = useState(null)
   const [collectionItems, setCollectionItems] = useState([])
@@ -38,19 +42,20 @@ function Collections({ selectedLibrary }) {
   const createDecadeCollections = async () => {
     if (!selectedLibrary) return
 
-    setCreating(true)
-    try {
-      const decades = [
-        { title: '1950s Movies', start: 1950, end: 1959 },
-        { title: '1960s Movies', start: 1960, end: 1969 },
-        { title: '1970s Movies', start: 1970, end: 1979 },
-        { title: '1980s Movies', start: 1980, end: 1989 },
-        { title: '1990s Movies', start: 1990, end: 1999 },
-        { title: '2000s Movies', start: 2000, end: 2009 },
-        { title: '2010s Movies', start: 2010, end: 2019 },
-        { title: '2020s Movies', start: 2020, end: 2029 }
-      ]
+    // Build decades array from selected presets
+    const decades = selectedDecades.map(id =>
+      decadePresets.find(d => d.id === id)
+    ).filter(Boolean)
 
+    if (decades.length === 0) {
+      alert('Please select at least one decade')
+      return
+    }
+
+    setCreating(true)
+    setShowDecadeModal(false)
+
+    try {
       const res = await fetch('/api/collections/decade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,7 +67,7 @@ function Collections({ selectedLibrary }) {
 
       const data = await res.json()
       if (data.status === 'success') {
-        alert(`Created ${data.created} decade collections!`)
+        alert(`Created ${data.created} decade collection${data.created > 1 ? 's' : ''}!`)
         fetchCollections()
       } else {
         alert(`Error: ${data.error}`)
@@ -78,16 +83,20 @@ function Collections({ selectedLibrary }) {
   const createStudioCollections = async () => {
     if (!selectedLibrary) return
 
-    setCreating(true)
-    try {
-      const studios = [
-        { title: 'Marvel Cinematic Universe', studios: ['Marvel Studios'] },
-        { title: 'DC Universe', studios: ['DC Comics', 'DC Entertainment'] },
-        { title: 'Disney Classics', studios: ['Walt Disney Pictures', 'Disney'] },
-        { title: 'Pixar', studios: ['Pixar', 'Pixar Animation Studios'] },
-        { title: 'Warner Bros', studios: ['Warner Bros.', 'Warner Brothers'] }
-      ]
+    // Build studios array from selected presets
+    const studios = selectedStudios.map(id =>
+      studioPresets.find(s => s.id === id)
+    ).filter(Boolean)
 
+    if (studios.length === 0) {
+      alert('Please select at least one studio')
+      return
+    }
+
+    setCreating(true)
+    setShowStudioModal(false)
+
+    try {
       const res = await fetch('/api/collections/studio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,7 +108,7 @@ function Collections({ selectedLibrary }) {
 
       const data = await res.json()
       if (data.status === 'success') {
-        alert(`Created ${data.created} studio collections!`)
+        alert(`Created ${data.created} studio collection${data.created > 1 ? 's' : ''}!`)
         fetchCollections()
       } else {
         alert(`Error: ${data.error}`)
@@ -121,10 +130,67 @@ function Collections({ selectedLibrary }) {
     { id: 'dinosaurs', title: 'Dinosaurs', keywords: ['dinosaur', 'dinosaurs', 'prehistoric'] }
   ]
 
+  // Movie studio presets
+  const movieStudioPresets = [
+    { id: 'marvel', title: 'Marvel Cinematic Universe', studios: ['Marvel Studios'] },
+    { id: 'dc', title: 'DC Universe', studios: ['DC Comics', 'DC Entertainment'] },
+    { id: 'disney', title: 'Disney Classics', studios: ['Walt Disney Pictures', 'Disney'] },
+    { id: 'pixar', title: 'Pixar', studios: ['Pixar', 'Pixar Animation Studios'] },
+    { id: 'warner', title: 'Warner Bros', studios: ['Warner Bros.', 'Warner Brothers'] },
+    { id: 'universal', title: 'Universal Pictures', studios: ['Universal Pictures', 'Universal'] },
+    { id: 'paramount', title: 'Paramount Pictures', studios: ['Paramount Pictures', 'Paramount'] },
+    { id: 'sony', title: 'Sony Pictures', studios: ['Sony Pictures', 'Columbia Pictures'] },
+    { id: 'a24', title: 'A24', studios: ['A24'] },
+    { id: 'dreamworks', title: 'DreamWorks', studios: ['DreamWorks', 'DreamWorks Animation'] },
+    { id: 'lionsgate', title: 'Lionsgate', studios: ['Lionsgate', 'Lions Gate'] },
+    { id: 'ghibli', title: 'Studio Ghibli', studios: ['Studio Ghibli'] }
+  ]
+
+  // TV show studio/network presets
+  const tvStudioPresets = [
+    { id: 'netflix', title: 'Netflix Originals', studios: ['Netflix'] },
+    { id: 'hbo', title: 'HBO', studios: ['HBO', 'HBO Max'] },
+    { id: 'amazon', title: 'Amazon Prime', studios: ['Amazon', 'Amazon Studios', 'Prime Video'] },
+    { id: 'apple', title: 'Apple TV+', studios: ['Apple TV+', 'Apple'] },
+    { id: 'disney-plus', title: 'Disney+', studios: ['Disney+'] },
+    { id: 'hulu', title: 'Hulu', studios: ['Hulu'] },
+    { id: 'showtime', title: 'Showtime', studios: ['Showtime'] },
+    { id: 'starz', title: 'Starz', studios: ['Starz'] },
+    { id: 'fx', title: 'FX', studios: ['FX', 'FX Productions'] },
+    { id: 'amc', title: 'AMC', studios: ['AMC', 'AMC Studios'] },
+    { id: 'paramount-plus', title: 'Paramount+', studios: ['Paramount+', 'CBS'] },
+    { id: 'peacock', title: 'Peacock', studios: ['Peacock', 'NBC'] },
+    { id: 'bbc', title: 'BBC', studios: ['BBC', 'BBC One', 'BBC Two'] }
+  ]
+
+  // Use appropriate presets based on library type
+  const studioPresets = selectedLibrary?.type === 'show' ? tvStudioPresets : movieStudioPresets
+
+  const decadePresets = [
+    { id: '1950s', title: '1950s Movies', start: 1950, end: 1959 },
+    { id: '1960s', title: '1960s Movies', start: 1960, end: 1969 },
+    { id: '1970s', title: '1970s Movies', start: 1970, end: 1979 },
+    { id: '1980s', title: '1980s Movies', start: 1980, end: 1989 },
+    { id: '1990s', title: '1990s Movies', start: 1990, end: 1999 },
+    { id: '2000s', title: '2000s Movies', start: 2000, end: 2009 },
+    { id: '2010s', title: '2010s Movies', start: 2010, end: 2019 },
+    { id: '2020s', title: '2020s Movies', start: 2020, end: 2029 }
+  ]
+
   const openKeywordModal = () => {
     setShowKeywordModal(true)
     setSelectedPresets([])
     setCustomKeywords('')
+  }
+
+  const openStudioModal = () => {
+    setShowStudioModal(true)
+    setSelectedStudios([])
+  }
+
+  const openDecadeModal = () => {
+    setShowDecadeModal(true)
+    setSelectedDecades([])
   }
 
   const togglePreset = (presetId) => {
@@ -132,6 +198,22 @@ function Collections({ selectedLibrary }) {
       prev.includes(presetId)
         ? prev.filter(id => id !== presetId)
         : [...prev, presetId]
+    )
+  }
+
+  const toggleStudio = (studioId) => {
+    setSelectedStudios(prev =>
+      prev.includes(studioId)
+        ? prev.filter(id => id !== studioId)
+        : [...prev, studioId]
+    )
+  }
+
+  const toggleDecade = (decadeId) => {
+    setSelectedDecades(prev =>
+      prev.includes(decadeId)
+        ? prev.filter(id => id !== decadeId)
+        : [...prev, decadeId]
     )
   }
 
@@ -274,18 +356,18 @@ function Collections({ selectedLibrary }) {
         <h2 className="text-xl font-semibold mb-4">Create Collections</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
-            onClick={createDecadeCollections}
+            onClick={openDecadeModal}
             disabled={creating}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition"
           >
             📅 Create Decade Collections
           </button>
           <button
-            onClick={createStudioCollections}
+            onClick={openStudioModal}
             disabled={creating}
             className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition"
           >
-            🎬 Create Studio Collections
+            {selectedLibrary?.type === 'show' ? '📺 Create Network Collections' : '🎬 Create Studio Collections'}
           </button>
           <button
             onClick={openKeywordModal}
@@ -400,6 +482,96 @@ function Collections({ selectedLibrary }) {
           </div>
         )}
       </div>
+
+      {/* Studio Collections Modal */}
+      {showStudioModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setShowStudioModal(false)}>
+          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 border border-gray-700" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold mb-4">
+              {selectedLibrary?.type === 'show' ? 'Create Network Collections' : 'Create Studio Collections'}
+            </h2>
+
+            {/* Studio checkboxes */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">
+                {selectedLibrary?.type === 'show' ? 'Select Networks:' : 'Select Studios:'}
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {studioPresets.map(studio => (
+                  <label key={studio.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudios.includes(studio.id)}
+                      onChange={() => toggleStudio(studio.id)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">{studio.title}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowStudioModal(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createStudioCollections}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition font-semibold"
+              >
+                Create Collections
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Decade Collections Modal */}
+      {showDecadeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setShowDecadeModal(false)}>
+          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 border border-gray-700" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold mb-4">Create Decade Collections</h2>
+
+            {/* Decade checkboxes */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">Select Decades:</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {decadePresets.map(decade => (
+                  <label key={decade.id} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedDecades.includes(decade.id)}
+                      onChange={() => toggleDecade(decade.id)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">{decade.title}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDecadeModal(false)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createDecadeCollections}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition font-semibold"
+              >
+                Create Collections
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Keyword Collections Modal */}
       {showKeywordModal && (

@@ -71,7 +71,8 @@ class CollectionManager:
         title: str,
         items: List,
         description: Optional[str] = None,
-        sort_title: Optional[str] = None
+        sort_title: Optional[str] = None,
+        visible: bool = False
     ) -> Optional[Collection]:
         """
         Create a new collection safely
@@ -83,6 +84,7 @@ class CollectionManager:
             items: List of Plex items to add
             description: Collection description (optional)
             sort_title: Sort title for ordering (optional)
+            visible: Whether to show collection in library (default: False, hidden)
 
         Returns:
             Created collection or None if dry-run
@@ -118,6 +120,15 @@ class CollectionManager:
             # Set sort title if provided
             if sort_title:
                 collection.editSortTitle(sort_title)
+
+            # Set visibility (hide collection from library if visible=False)
+            if not visible:
+                try:
+                    # Mode 1 = hide collection from library
+                    collection.modeUpdate(mode=1)
+                    logger.info(f"  Set collection to hidden from library")
+                except Exception as e:
+                    logger.warning(f"  Could not hide collection: {e}")
 
             logger.info(f"✓ Created collection: {title}")
 
@@ -249,12 +260,18 @@ class CollectionManager:
 
             logger.info(f"\nProcessing studio collection: {title}")
 
-            # Search for items from any of the studios
+            # Search for items from any of the studios/networks
+            # For TV shows, use 'network' field; for movies, use 'studio' field
             all_items = []
+            search_field = "network" if self.library_type == "show" else "studio"
+
             for studio_name in studio_names:
-                items = self.library.search(studio=studio_name)
+                if self.library_type == "show":
+                    items = self.library.search(network=studio_name)
+                else:
+                    items = self.library.search(studio=studio_name)
                 all_items.extend(items)
-                logger.info(f"  Found {len(items)} items from '{studio_name}'")
+                logger.info(f"  Found {len(items)} items from '{studio_name}' ({search_field})")
 
             # Remove duplicates
             unique_items = list({item.ratingKey: item for item in all_items}.values())
@@ -264,10 +281,11 @@ class CollectionManager:
                 continue
 
             # Create collection
+            content_type = "TV shows" if self.library_type == "show" else "Movies"
             collection = self.create_collection(
                 title=title,
                 items=unique_items,
-                description=f"Movies from {', '.join(studio_names)}",
+                description=f"{content_type} from {', '.join(studio_names)}",
                 sort_title=f"!Studio {title}"
             )
 
