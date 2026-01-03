@@ -362,6 +362,12 @@ manager.process_library()  # Preview without applying
 - [x] **Modal-based creation** - Select which collections to create (no auto-duplication)
 
 ### Planned 🚧
+- [ ] **Multi-server support** - Add/remove Plex servers from Web UI
+  - Network discovery for Plex servers
+  - OAuth authentication flow (no manual token setup)
+  - Auto-discover libraries from selected server
+  - Switch between servers without editing .env
+  - Save server configurations in database
 - [ ] Per-episode ratings for TV shows
 - [ ] Scheduled updates (refresh ratings periodically)
 - [ ] Custom badge themes
