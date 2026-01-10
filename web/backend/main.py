@@ -64,6 +64,7 @@ class ProcessRequest(BaseModel):
     position: str = "northwest"
     force: bool = False
     limit: Optional[int] = None
+    rating_sources: Optional[Dict[str, bool]] = None  # Which ratings to show
 
 
 class LibraryStats(BaseModel):
@@ -291,7 +292,8 @@ async def process_library_background(request: ProcessRequest):
             omdb_api_key=os.getenv('OMDB_API_KEY'),
             mdblist_api_key=os.getenv('MDBLIST_API_KEY'),
             backup_dir='/backups',
-            dry_run=False
+            dry_run=False,
+            rating_sources=request.rating_sources
         )
 
         all_items = manager.library.all()

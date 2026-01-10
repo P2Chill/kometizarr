@@ -7,6 +7,16 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
   const [loading, setLoading] = useState(true)
   const [position, setPosition] = useState('northwest')
   const [force, setForce] = useState(false)
+  const [ratingSources, setRatingSources] = useState(() => {
+    // Load from localStorage or default to all enabled
+    const saved = localStorage.getItem('kometizarr_rating_sources')
+    return saved ? JSON.parse(saved) : {
+      tmdb: true,
+      imdb: true,
+      rt_critic: true,
+      rt_audience: true
+    }
+  })
 
   useEffect(() => {
     fetchLibraries()
@@ -48,6 +58,12 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     }
   }
 
+  const toggleRatingSource = (source) => {
+    const updated = { ...ratingSources, [source]: !ratingSources[source] }
+    setRatingSources(updated)
+    localStorage.setItem('kometizarr_rating_sources', JSON.stringify(updated))
+  }
+
   const startProcessing = async () => {
     if (!selectedLibrary) return
 
@@ -59,6 +75,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
           library_name: selectedLibrary.name,
           position,
           force,
+          rating_sources: ratingSources,
         }),
       })
 
@@ -196,6 +213,66 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
               ℹ️ Uses original posters from backup to apply fresh overlays with updated ratings. Original backups are never overwritten.
             </div>
           )}
+
+          {/* Rating Sources */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Rating Sources to Display</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={ratingSources.tmdb}
+                  onChange={() => toggleRatingSource('tmdb')}
+                  className="mr-2"
+                  id="tmdb-checkbox"
+                />
+                <label htmlFor="tmdb-checkbox" className="text-sm">
+                  🎬 TMDB (0-10 scale)
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={ratingSources.imdb}
+                  onChange={() => toggleRatingSource('imdb')}
+                  className="mr-2"
+                  id="imdb-checkbox"
+                />
+                <label htmlFor="imdb-checkbox" className="text-sm">
+                  ⭐ IMDb (0-10 scale)
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={ratingSources.rt_critic}
+                  onChange={() => toggleRatingSource('rt_critic')}
+                  className="mr-2"
+                  id="rt-critic-checkbox"
+                />
+                <label htmlFor="rt-critic-checkbox" className="text-sm">
+                  🍅 RT Critic (0-100%)
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={ratingSources.rt_audience}
+                  onChange={() => toggleRatingSource('rt_audience')}
+                  className="mr-2"
+                  id="rt-audience-checkbox"
+                />
+                <label htmlFor="rt-audience-checkbox" className="text-sm">
+                  🍿 RT Audience (0-100%)
+                </label>
+              </div>
+            </div>
+            {!Object.values(ratingSources).some(v => v) && (
+              <div className="mt-2 p-3 bg-red-900/20 border border-red-700/50 rounded text-sm text-red-300">
+                ⚠️ At least one rating source must be selected
+              </div>
+            )}
+          </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-4">

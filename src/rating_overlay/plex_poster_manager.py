@@ -35,7 +35,8 @@ class PlexPosterManager:
         mdblist_api_key: Optional[str] = None,
         backup_dir: str = './data/kometizarr_backups',
         badge_style: str = 'default',
-        dry_run: bool = False
+        dry_run: bool = False,
+        rating_sources: Optional[Dict[str, bool]] = None
     ):
         """
         Initialize Plex poster manager
@@ -49,11 +50,15 @@ class PlexPosterManager:
             backup_dir: Directory for poster backups
             badge_style: Badge style ('default', 'imdb', 'minimal', etc.)
             dry_run: If True, preview operations without applying
+            rating_sources: Optional dict to control which ratings to show
+                           e.g. {'tmdb': True, 'imdb': True, 'rt_critic': False, 'rt_audience': False}
+                           If None, shows all available ratings
         """
         self.plex_url = plex_url
         self.plex_token = plex_token
         self.library_name = library_name
         self.dry_run = dry_run
+        self.rating_sources = rating_sources or {}
 
         # Connect to Plex
         self.server = PlexServer(plex_url, plex_token)
@@ -211,6 +216,13 @@ class PlexPosterManager:
                             ratings['rt_critic'] = mdb_data['rt_critic']
                         if 'rt_audience' not in ratings and mdb_data.get('rt_audience'):
                             ratings['rt_audience'] = mdb_data['rt_audience']
+
+            # Filter ratings based on user preferences (if specified)
+            if self.rating_sources:
+                ratings = {
+                    k: v for k, v in ratings.items()
+                    if self.rating_sources.get(k, True)  # Default to True if not specified
+                }
 
             # Check if we have ANY ratings - fail only if all sources are empty/zero
             if not ratings or all(v == 0 for v in ratings.values()):
@@ -452,7 +464,8 @@ def main():
         mdblist_api_key=config['apis'].get('mdblist', {}).get('api_key'),
         backup_dir=config['output']['directory'],
         badge_style=config['rating_overlay']['badge'].get('style', 'default'),
-        dry_run=args.dry_run
+        dry_run=args.dry_run,
+        rating_sources=config['rating_overlay'].get('sources', None)
     )
 
     # Restore mode

@@ -21,9 +21,9 @@
     "enabled": true,
     "sources": {
       "tmdb": true,
-      "imdb": false,
-      "rotten_tomatoes": false,
-      "tvdb": false
+      "imdb": true,
+      "rt_critic": true,
+      "rt_audience": true
     },
     "badge": {
       "style": "default",
