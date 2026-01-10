@@ -40,7 +40,9 @@ processing_state = {
     "success": 0,
     "failed": 0,
     "skipped": 0,
-    "current_item": None
+    "current_item": None,
+    "stop_requested": False,
+    "force_mode": False
 }
 
 # Restore state
@@ -52,7 +54,8 @@ restore_state = {
     "restored": 0,
     "failed": 0,
     "skipped": 0,
-    "current_item": None
+    "current_item": None,
+    "stop_requested": False
 }
 
 
@@ -166,6 +169,30 @@ async def restore_originals(request: ProcessRequest):
     return {"status": "started", "library": request.library_name}
 
 
+@app.post("/api/stop")
+async def stop_processing():
+    """Request graceful stop of current processing operation"""
+    global processing_state
+
+    if processing_state["is_processing"]:
+        processing_state["stop_requested"] = True
+        return {"status": "stopping", "message": "Processing will stop after current item"}
+
+    return {"status": "idle", "message": "No processing in progress"}
+
+
+@app.post("/api/restore/stop")
+async def stop_restore():
+    """Request graceful stop of current restore operation"""
+    global restore_state
+
+    if restore_state["is_restoring"]:
+        restore_state["stop_requested"] = True
+        return {"status": "stopping", "message": "Restore will stop after current item"}
+
+    return {"status": "idle", "message": "No restore in progress"}
+
+
 async def restore_library_background(request: ProcessRequest):
     """Background task for restoring library"""
     global restore_state
@@ -201,6 +228,11 @@ async def restore_library_background(request: ProcessRequest):
 
         # Restore each item
         for i, item in enumerate(all_items, 1):
+            # Check if stop was requested
+            if restore_state["stop_requested"]:
+                logger.info(f"Stop requested - stopping restore at item {i}/{restore_state['total']}")
+                break
+
             restore_state["progress"] = i
             restore_state["current_item"] = item.title
 
@@ -224,10 +256,12 @@ async def restore_library_background(request: ProcessRequest):
             await asyncio.sleep(0.1)
 
         restore_state["is_restoring"] = False
+        restore_state["stop_requested"] = False
         await broadcast_restore_progress()  # Final update
 
     except Exception as e:
         restore_state["is_restoring"] = False
+        restore_state["stop_requested"] = False
         restore_state["error"] = str(e)
         await broadcast_restore_progress()
 
@@ -246,6 +280,7 @@ async def process_library_background(request: ProcessRequest):
         processing_state["failed"] = 0
         processing_state["skipped"] = 0
         processing_state["current_item"] = None
+        processing_state["force_mode"] = request.force
 
         # Initialize manager
         manager = PlexPosterManager(
@@ -267,6 +302,11 @@ async def process_library_background(request: ProcessRequest):
 
         # Process each item
         for i, item in enumerate(all_items, 1):
+            # Check if stop was requested
+            if processing_state["stop_requested"]:
+                logger.info(f"Stop requested - stopping processing at item {i}/{processing_state['total']}")
+                break
+
             processing_state["progress"] = i
             processing_state["current_item"] = item.title
 
@@ -287,10 +327,12 @@ async def process_library_background(request: ProcessRequest):
             await asyncio.sleep(0.3)
 
         processing_state["is_processing"] = False
+        processing_state["stop_requested"] = False
         await broadcast_progress()  # Final update
 
     except Exception as e:
         processing_state["is_processing"] = False
+        processing_state["stop_requested"] = False
         processing_state["error"] = str(e)
         await broadcast_progress()
 

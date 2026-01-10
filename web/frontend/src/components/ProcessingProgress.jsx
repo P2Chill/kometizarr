@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 function ProcessingProgress({ onComplete, progressData, setProgressData }) {
   const [ws, setWs] = useState(null)
   const wsRef = useRef(null)
+  const [stopping, setStopping] = useState(false)
 
   useEffect(() => {
     // Connect to WebSocket
@@ -17,6 +18,11 @@ function ProcessingProgress({ onComplete, progressData, setProgressData }) {
     websocket.onmessage = (event) => {
       const data = JSON.parse(event.data)
       setProgressData(data)
+
+      // Clear stopping state when operation completes
+      if (!data.is_processing && !data.is_restoring) {
+        setStopping(false)
+      }
 
       // Auto-complete when processing or restoring finishes
       if ((data.is_processing === false || data.is_restoring === false) && data.progress > 0) {
@@ -43,6 +49,21 @@ function ProcessingProgress({ onComplete, progressData, setProgressData }) {
       }
     }
   }, [])
+
+  const handleStop = async () => {
+    const isRestoring = progressData.is_restoring !== undefined
+    const endpoint = isRestoring ? '/api/restore/stop' : '/api/stop'
+
+    try {
+      setStopping(true)
+      const res = await fetch(endpoint, { method: 'POST' })
+      const data = await res.json()
+      console.log('Stop requested:', data.message)
+    } catch (error) {
+      console.error('Failed to stop:', error)
+      setStopping(false)
+    }
+  }
 
   if (!progressData) {
     return (
@@ -73,12 +94,23 @@ function ProcessingProgress({ onComplete, progressData, setProgressData }) {
           <h2 className="text-2xl font-semibold">
             {isRestoring ? 'Restoring' : 'Processing'} {progressData.current_library}
           </h2>
-          {isActive && (
-            <span className="flex items-center text-blue-400">
-              <span className="animate-pulse mr-2">●</span>
-              {isRestoring ? 'Restoring...' : 'Processing...'}
-            </span>
-          )}
+          <div className="flex items-center gap-4">
+            {isActive && (
+              <>
+                <span className="flex items-center text-blue-400">
+                  <span className="animate-pulse mr-2">●</span>
+                  {stopping ? 'Stopping...' : isRestoring ? 'Restoring...' : 'Processing...'}
+                </span>
+                <button
+                  onClick={handleStop}
+                  disabled={stopping}
+                  className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2 px-4 rounded transition"
+                >
+                  {stopping ? '⏹ Stopping...' : '⏹ Stop'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Progress Bar */}
@@ -101,6 +133,9 @@ function ProcessingProgress({ onComplete, progressData, setProgressData }) {
         {progressData.current_item && (
           <div className="text-sm text-gray-400">
             Current: <span className="text-white">{progressData.current_item}</span>
+            {progressData.force_mode && !isRestoring && (
+              <span className="ml-3 text-orange-400">🔄 Using backup</span>
+            )}
           </div>
         )}
       </div>
@@ -151,11 +186,13 @@ function ProcessingProgress({ onComplete, progressData, setProgressData }) {
           <div className="text-blue-400 mr-3">ℹ️</div>
           <div>
             <div className="font-semibold text-blue-300 mb-1">
-              {isRestoring ? 'Restore in progress' : 'Processing in progress'}
+              {isRestoring ? 'Restore in progress' : progressData.force_mode ? 'Force reapply in progress' : 'Processing in progress'}
             </div>
             <div className="text-sm text-gray-400">
               {isRestoring
                 ? 'Original posters are being restored from backups. This page will update in real-time as items are restored.'
+                : progressData.force_mode
+                ? 'Using backed up original posters to apply fresh overlays with updated ratings. Original backups are never overwritten. This page will update in real-time as items are processed.'
                 : 'Multi-source rating overlays are being applied to your Plex library. This page will update in real-time as items are processed.'}
             </div>
           </div>
