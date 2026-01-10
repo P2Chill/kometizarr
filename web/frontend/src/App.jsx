@@ -8,6 +8,38 @@ function App() {
   const [progressData, setProgressData] = useState(null)
   const [activeTab, setActiveTab] = useState('overlays')
   const [selectedLibrary, setSelectedLibrary] = useState(null)
+  const [checkingStatus, setCheckingStatus] = useState(true)
+
+  // Check if processing is active on mount (for reconnection after refresh)
+  useEffect(() => {
+    const checkProcessingStatus = async () => {
+      try {
+        const res = await fetch('/api/status')
+        const status = await res.json()
+
+        // If processing is active, switch to processing view
+        if (status.is_processing || status.is_restoring) {
+          setProcessing(true)
+          setProgressData(status)
+        }
+      } catch (error) {
+        console.error('Failed to check processing status:', error)
+      } finally {
+        setCheckingStatus(false)
+      }
+    }
+
+    checkProcessingStatus()
+  }, [])
+
+  // Show loading state while checking for active processing
+  if (checkingStatus) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -81,7 +113,7 @@ function App() {
       {/* Footer */}
       <footer className="bg-gray-800 border-t border-gray-700 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-4 text-center text-gray-500 text-sm">
-          Kometizarr v1.0.1 ✨
+          Kometizarr v1.0.2 ✨
         </div>
       </footer>
     </div>
