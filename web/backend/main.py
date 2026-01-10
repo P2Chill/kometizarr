@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 import asyncio
 import json
+import logging
 import os
 import sys
 
@@ -16,6 +17,9 @@ sys.path.insert(0, '/app/kometizarr')
 from src.rating_overlay.plex_poster_manager import PlexPosterManager
 from src.collection_manager.manager import CollectionManager
 from src.utils.logger import setup_logger
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Kometizarr API", version="1.0.0")
 
