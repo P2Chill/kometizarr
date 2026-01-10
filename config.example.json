@@ -77,7 +77,7 @@
     }
   },
   "output": {
-    "directory": "/tmp/rated_posters",
+    "directory": "./data/kometizarr_backups",
     "quality": 95,
     "backup_originals": true
   },

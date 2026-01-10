@@ -33,7 +33,7 @@ class PlexPosterManager:
         tmdb_api_key: str,
         omdb_api_key: Optional[str] = None,
         mdblist_api_key: Optional[str] = None,
-        backup_dir: str = '/tmp/kometizarr_backups',
+        backup_dir: str = './data/kometizarr_backups',
         badge_style: str = 'default',
         dry_run: bool = False
     ):
