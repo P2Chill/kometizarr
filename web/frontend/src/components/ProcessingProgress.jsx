@@ -4,51 +4,93 @@ function ProcessingProgress({ onComplete, progressData, setProgressData }) {
   const [ws, setWs] = useState(null)
   const wsRef = useRef(null)
   const [stopping, setStopping] = useState(false)
+  const [countdown, setCountdown] = useState(null)
+  const reconnectTimeoutRef = useRef(null)
+  const [reconnecting, setReconnecting] = useState(false)
 
   useEffect(() => {
-    // Connect to WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws/progress`
-    const websocket = new WebSocket(wsUrl)
+    let mounted = true
 
-    websocket.onopen = () => {
-      console.log('WebSocket connected')
-    }
+    const connectWebSocket = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${protocol}//${window.location.host}/ws/progress`
+      const websocket = new WebSocket(wsUrl)
 
-    websocket.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      setProgressData(data)
-
-      // Clear stopping state when operation completes
-      if (!data.is_processing && !data.is_restoring) {
-        setStopping(false)
+      websocket.onopen = () => {
+        console.log('WebSocket connected')
+        setReconnecting(false)
       }
 
-      // Auto-complete when processing or restoring finishes
-      if ((data.is_processing === false || data.is_restoring === false) && data.progress > 0) {
-        setTimeout(() => {
-          onComplete()
-        }, 2000) // Show final stats for 2 seconds
+      websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        setProgressData(data)
+
+        // Reset countdown if a new operation starts
+        if (data.is_processing || data.is_restoring) {
+          setCountdown(null)
+        }
+
+        // Clear stopping state when operation completes
+        if (!data.is_processing && !data.is_restoring) {
+          setStopping(false)
+        }
+
+        // Start countdown when processing or restoring finishes
+        if ((data.is_processing === false || data.is_restoring === false) && data.progress > 0) {
+          setCountdown(10) // Start 10 second countdown
+        }
       }
+
+      websocket.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      }
+
+      websocket.onclose = () => {
+        console.log('WebSocket disconnected')
+        wsRef.current = null
+
+        // Auto-reconnect after 2 seconds if still mounted
+        if (mounted) {
+          setReconnecting(true)
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('Attempting to reconnect...')
+            connectWebSocket()
+          }, 2000)
+        }
+      }
+
+      wsRef.current = websocket
+      setWs(websocket)
     }
 
-    websocket.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-
-    websocket.onclose = () => {
-      console.log('WebSocket disconnected')
-    }
-
-    wsRef.current = websocket
-    setWs(websocket)
+    connectWebSocket()
 
     return () => {
+      mounted = false
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
       if (wsRef.current) {
         wsRef.current.close()
       }
     }
   }, [])
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown === null) return
+
+    if (countdown === 0) {
+      onComplete()
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [countdown, onComplete])
 
   const handleStop = async () => {
     const isRestoring = progressData.is_restoring !== undefined
@@ -88,6 +130,14 @@ function ProcessingProgress({ onComplete, progressData, setProgressData }) {
 
   return (
     <div className="space-y-6">
+      {/* Reconnecting Banner */}
+      {reconnecting && (
+        <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4 flex items-center gap-3">
+          <div className="text-yellow-400 animate-pulse">⚠️</div>
+          <div className="text-yellow-300">Reconnecting to server...</div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
         <div className="flex items-center justify-between mb-4">
@@ -206,11 +256,24 @@ function ProcessingProgress({ onComplete, progressData, setProgressData }) {
           <div className="text-2xl font-bold text-green-400 mb-2">
             {isRestoring ? 'Restore Complete!' : 'Processing Complete!'}
           </div>
-          <div className="text-gray-400">
+          <div className="text-gray-400 mb-3">
             {isRestoring
               ? `Successfully restored ${successCount} out of ${progressData.total} items`
               : `Successfully processed ${successCount} out of ${progressData.total} items`}
           </div>
+          {countdown !== null && countdown > 0 && (
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <div className="text-sm text-blue-400">
+                Going back in {countdown} second{countdown !== 1 ? 's' : ''}...
+              </div>
+              <button
+                onClick={onComplete}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition text-sm"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

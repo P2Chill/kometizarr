@@ -409,6 +409,21 @@ manager.process_library()  # Preview without applying
   - Stop button in Web UI during active processing
   - Gracefully terminate backend processing loop
   - Confirm dialog to prevent accidental cancellation
+- [x] **Rating source filtering** - Selectively choose which rating sources to display
+  - Web UI checkboxes for TMDB, IMDb, RT Critic, RT Audience
+  - Preferences saved in localStorage (persists across sessions)
+  - CLI configuration via config.json
+- [x] **Browser reconnection** - Resume monitoring active processing after page refresh
+  - Frontend checks `/api/status` on mount to detect active operations
+  - Automatically reconnects to processing view with current progress
+  - Stop button remains functional after reconnection
+- [x] **WebSocket auto-reconnect** - Resilient real-time updates during backend restarts
+  - Automatic reconnection with visual feedback banner
+  - Seamless resume of live progress updates
+  - Handles frontend/backend container rebuilds gracefully
+- [x] **10-second countdown** - Completion screen with countdown before returning to dashboard
+  - Prevents accidental navigation away from completion stats
+  - Skip button to return immediately
 
 ### Planned 🚧
 - [ ] **Multi-server support** - Add/remove Plex servers from Web UI

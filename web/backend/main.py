@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime
 
 # Add kometizarr to path
 sys.path.insert(0, '/app/kometizarr')
@@ -19,9 +20,14 @@ from src.collection_manager.manager import CollectionManager
 from src.utils.logger import setup_logger
 
 # Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)s | %(message)s',
+    datefmt='%H:%M:%S'
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Kometizarr API", version="1.0.2")
+app = FastAPI(title="Kometizarr API", version="1.0.3")
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -35,7 +41,7 @@ app.add_middleware(
 # Active WebSocket connections for live progress
 active_connections: List[WebSocket] = []
 
-# Processing state
+# Processing state (sent over WebSocket - must be JSON serializable)
 processing_state = {
     "is_processing": False,
     "current_library": None,
@@ -46,10 +52,13 @@ processing_state = {
     "skipped": 0,
     "current_item": None,
     "stop_requested": False,
-    "force_mode": False
+    "force_mode": False,
 }
 
-# Restore state
+# Processing start time (stored separately - not sent over WebSocket)
+processing_start_time = None
+
+# Restore state (sent over WebSocket - must be JSON serializable)
 restore_state = {
     "is_restoring": False,
     "current_library": None,
@@ -59,8 +68,11 @@ restore_state = {
     "failed": 0,
     "skipped": 0,
     "current_item": None,
-    "stop_requested": False
+    "stop_requested": False,
 }
+
+# Restore start time (stored separately - not sent over WebSocket)
+restore_start_time = None
 
 
 class ProcessRequest(BaseModel):
@@ -81,7 +93,7 @@ class LibraryStats(BaseModel):
 @app.get("/")
 async def root():
     """Health check"""
-    return {"status": "ok", "app": "Kometizarr API", "version": "1.0.2"}
+    return {"status": "ok", "app": "Kometizarr API", "version": "1.0.3"}
 
 
 @app.get("/api/libraries")
@@ -200,7 +212,7 @@ async def stop_restore():
 
 async def restore_library_background(request: ProcessRequest):
     """Background task for restoring library"""
-    global restore_state
+    global restore_state, restore_start_time
 
     try:
         # Reset restore state for new run
@@ -212,6 +224,7 @@ async def restore_library_background(request: ProcessRequest):
         restore_state["failed"] = 0
         restore_state["skipped"] = 0
         restore_state["current_item"] = None
+        restore_start_time = datetime.now()
 
         from plexapi.server import PlexServer
         from src.rating_overlay.backup_manager import PosterBackupManager
@@ -230,6 +243,8 @@ async def restore_library_background(request: ProcessRequest):
             all_items = all_items[:request.limit]
 
         restore_state["total"] = len(all_items)
+
+        logger.info(f"🔄 Restore started: {request.library_name} ({len(all_items)} items)")
 
         # Restore each item
         for i, item in enumerate(all_items, 1):
@@ -262,18 +277,47 @@ async def restore_library_background(request: ProcessRequest):
 
         restore_state["is_restoring"] = False
         restore_state["stop_requested"] = False
+
+        # Calculate duration and stats
+        duration = datetime.now() - restore_start_time
+        duration_seconds = duration.total_seconds()
+        duration_str = f"{int(duration_seconds // 3600)}h {int((duration_seconds % 3600) // 60)}m {int(duration_seconds % 60)}s" if duration_seconds >= 3600 else f"{int(duration_seconds // 60)}m {int(duration_seconds % 60)}s"
+
+        total = restore_state["total"]
+        restored = restore_state["restored"]
+        failed = restore_state["failed"]
+        skipped = restore_state["skipped"]
+
+        restored_rate = (restored / total * 100) if total > 0 else 0
+        failed_rate = (failed / total * 100) if total > 0 else 0
+        skipped_rate = (skipped / total * 100) if total > 0 else 0
+        rate_per_min = (total / (duration_seconds / 60)) if duration_seconds > 0 else 0
+
+        # Log fancy summary
+        logger.info("=" * 60)
+        logger.info(f"✅ Restore Completed: {request.library_name}")
+        logger.info("-" * 60)
+        logger.info(f"Total Items:     {total}")
+        logger.info(f"Restored:        {restored} ({restored_rate:.1f}%)")
+        logger.info(f"Failed:          {failed} ({failed_rate:.1f}%)")
+        logger.info(f"Skipped:         {skipped} ({skipped_rate:.1f}%)")
+        logger.info(f"Duration:        {duration_str}")
+        logger.info(f"Rate:            {rate_per_min:.1f} items/min")
+        logger.info("=" * 60)
+
         await broadcast_restore_progress()  # Final update
 
     except Exception as e:
         restore_state["is_restoring"] = False
         restore_state["stop_requested"] = False
         restore_state["error"] = str(e)
+        logger.error(f"❌ Restore failed: {request.library_name} - Error: {e}")
         await broadcast_restore_progress()
 
 
 async def process_library_background(request: ProcessRequest):
     """Background task for processing library"""
-    global processing_state
+    global processing_state, processing_start_time
 
     try:
         # Reset processing state for new run
@@ -286,6 +330,7 @@ async def process_library_background(request: ProcessRequest):
         processing_state["skipped"] = 0
         processing_state["current_item"] = None
         processing_state["force_mode"] = request.force
+        processing_start_time = datetime.now()
 
         # Initialize manager
         manager = PlexPosterManager(
@@ -305,6 +350,8 @@ async def process_library_background(request: ProcessRequest):
             all_items = all_items[:request.limit]
 
         processing_state["total"] = len(all_items)
+
+        logger.info(f"🎬 Processing started: {request.library_name} ({len(all_items)} items)")
 
         # Process each item
         for i, item in enumerate(all_items, 1):
@@ -334,12 +381,41 @@ async def process_library_background(request: ProcessRequest):
 
         processing_state["is_processing"] = False
         processing_state["stop_requested"] = False
+
+        # Calculate duration and stats
+        duration = datetime.now() - processing_start_time
+        duration_seconds = duration.total_seconds()
+        duration_str = f"{int(duration_seconds // 3600)}h {int((duration_seconds % 3600) // 60)}m {int(duration_seconds % 60)}s" if duration_seconds >= 3600 else f"{int(duration_seconds // 60)}m {int(duration_seconds % 60)}s"
+
+        total = processing_state["total"]
+        success = processing_state["success"]
+        failed = processing_state["failed"]
+        skipped = processing_state["skipped"]
+
+        success_rate = (success / total * 100) if total > 0 else 0
+        failed_rate = (failed / total * 100) if total > 0 else 0
+        skipped_rate = (skipped / total * 100) if total > 0 else 0
+        rate_per_min = (total / (duration_seconds / 60)) if duration_seconds > 0 else 0
+
+        # Log fancy summary
+        logger.info("=" * 60)
+        logger.info(f"✅ Processing Completed: {request.library_name}")
+        logger.info("-" * 60)
+        logger.info(f"Total Items:     {total}")
+        logger.info(f"Success:         {success} ({success_rate:.1f}%)")
+        logger.info(f"Failed:          {failed} ({failed_rate:.1f}%)")
+        logger.info(f"Skipped:         {skipped} ({skipped_rate:.1f}%)")
+        logger.info(f"Duration:        {duration_str}")
+        logger.info(f"Rate:            {rate_per_min:.1f} items/min")
+        logger.info("=" * 60)
+
         await broadcast_progress()  # Final update
 
     except Exception as e:
         processing_state["is_processing"] = False
         processing_state["stop_requested"] = False
         processing_state["error"] = str(e)
+        logger.error(f"❌ Processing failed: {request.library_name} - Error: {e}")
         await broadcast_progress()
 
 

@@ -65,7 +65,10 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {processing ? (
           <ProcessingProgress
-            onComplete={() => setProcessing(false)}
+            onComplete={() => {
+              setProgressData(null) // Clear old progress data
+              setProcessing(false)
+            }}
             progressData={progressData}
             setProgressData={setProgressData}
           />
@@ -100,7 +103,10 @@ function App() {
             {/* Tab Content */}
             {activeTab === 'overlays' ? (
               <Dashboard
-                onStartProcessing={() => setProcessing(true)}
+                onStartProcessing={() => {
+                  setProgressData(null) // Clear old data (handles backend rebuilds)
+                  setProcessing(true)
+                }}
                 onLibrarySelect={setSelectedLibrary}
               />
             ) : (
@@ -113,7 +119,7 @@ function App() {
       {/* Footer */}
       <footer className="bg-gray-800 border-t border-gray-700 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-4 text-center text-gray-500 text-sm">
-          Kometizarr v1.0.2 ✨
+          Kometizarr v1.0.3 ✨
         </div>
       </footer>
     </div>

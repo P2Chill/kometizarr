@@ -6,6 +6,7 @@ services:
       - "8000:8000"
     volumes:
       - ./:/app/kometizarr  # Mount entire project
+      - ./web/backend:/app/backend  # Mount backend source for hot-reload (no rebuild needed)
       - ./data/backups:/backups  # Poster backups (PERSISTENT - survives reboots)
       - ./data/temp:/temp  # Temp processing
     environment:
