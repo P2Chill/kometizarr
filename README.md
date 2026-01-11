@@ -84,6 +84,7 @@ services:
       - "8000:8000"
     volumes:
       - ./:/app/kometizarr  # Mount entire project
+      - ./web/backend:/app/backend  # Mount backend source for hot-reload (no rebuild needed)
       - ./data/backups:/backups  # Poster backups (PERSISTENT - survives reboots)
       - ./data/temp:/temp  # Temp processing
     environment:
@@ -133,9 +134,13 @@ See [Terraform Documentation](terraform/README.md) for details.
 
 **Features:**
 - 📊 Visual dashboard with library stats
-- ⚡ Real-time progress with WebSocket updates
-- 🎯 One-click processing
-- 📈 Live success/failure tracking
+- ⚡ Real-time progress with WebSocket updates (auto-reconnect on disconnection)
+- 🎯 One-click processing with live progress tracking
+- 📈 Live success/failure/skipped counts
+- 🎨 Rating source filtering (choose TMDB, IMDb, RT Critic, RT Audience)
+- 🔄 Browser refresh resilience (resumes monitoring active operations)
+- ⏱️ 10-second countdown on completion with skip option
+- 🛑 Cancel/stop button to abort processing mid-run
 - 🏗️ Infrastructure as code with Terraform
 
 See [Web UI Documentation](web/README.md) for details.

@@ -6,6 +6,11 @@ Beautiful web interface for managing Plex rating overlays with real-time progres
 
 - 🎨 **Visual Dashboard** - See your libraries and stats at a glance
 - 📊 **Live Progress** - Real-time WebSocket updates as processing happens
+- 🔄 **Auto-Reconnect** - WebSocket automatically reconnects if connection drops
+- 🌐 **Browser Refresh Resilience** - Refresh during processing and resume monitoring
+- 🎨 **Rating Source Filtering** - Choose which ratings to display (TMDB, IMDb, RT)
+- ⏱️ **Completion Countdown** - 10-second countdown before returning to dashboard
+- 🛑 **Cancel/Stop Button** - Abort processing mid-run with confirmation dialog
 - ⚙️ **Easy Configuration** - Select libraries and options with a clean UI
 - 🚀 **Fast & Responsive** - Built with React and FastAPI
 - 🐳 **Docker Ready** - Deploy with one command
@@ -53,8 +58,8 @@ http://localhost:3001
 
 ```
 ┌─────────────────┐
-│  React Frontend │  ←  Port 3000
-│   (Nginx)       │
+│  React Frontend │  ←  Port 3001 (external)
+│   (Nginx)       │      Port 80 (internal)
 └────────┬────────┘
          │
          ↓ API calls + WebSocket
@@ -99,19 +104,22 @@ Frontend will be available at `http://localhost:3001`
 - `GET /api/libraries` - List all Plex libraries
 - `GET /api/library/{name}/stats` - Get library statistics
 - `POST /api/process` - Start overlay processing
+- `POST /api/stop` - Stop/cancel active processing
 - `GET /api/status` - Get current processing status
 - `WS /ws/progress` - WebSocket for live progress updates
 
 ## How It Works
 
 1. **Select Library** - Choose Movies or TV Shows library
-2. **Configure Options** - Select badge position and processing options
-3. **Start Processing** - Click "Start Processing" button
-4. **Watch Live Progress** - See real-time updates via WebSocket
+2. **Configure Rating Sources** - Select which ratings to display (TMDB, IMDb, RT)
+3. **Configure Options** - Select badge position and processing options
+4. **Start Processing** - Click "Start Processing" button
+5. **Watch Live Progress** - See real-time updates via WebSocket
    - Progress bar shows completion percentage
    - Success/Failed/Skipped counts update live
    - Current item being processed is displayed
-5. **Complete** - Automatic redirect to dashboard when done
+   - Stop button available to cancel mid-run
+6. **Complete** - 10-second countdown before returning to dashboard (or click "Back to Dashboard")
 
 ## Features Explained
 
@@ -119,9 +127,22 @@ Frontend will be available at `http://localhost:3001`
 
 The Web UI uses WebSocket connections to stream live progress updates:
 - **No page refreshes needed** - Updates happen automatically
+- **Auto-reconnect** - WebSocket automatically reconnects if connection drops (backend restart, network glitch)
+- **Browser refresh resilience** - Refresh the page during processing and it resumes monitoring
 - **Real-time stats** - Success rate, failures, and remaining items
 - **Current item display** - See exactly what's being processed
-- **Automatic completion** - Redirects to dashboard when done
+- **Stop button** - Cancel processing mid-run with confirmation dialog
+- **10-second countdown** - Completion screen with countdown before returning to dashboard
+
+### Rating Source Filtering
+
+Choose exactly which rating sources to display on your posters:
+- **TMDB** - The Movie Database ratings (0-10 scale)
+- **IMDb** - Internet Movie Database ratings (0-10 scale)
+- **RT Critic** - Rotten Tomatoes critic scores (percentage)
+- **RT Audience** - Rotten Tomatoes audience scores (percentage)
+
+Preferences are saved in your browser (localStorage) and persist across sessions
 
 ### Badge Position Options
 
@@ -133,8 +154,9 @@ The Web UI uses WebSocket connections to stream live progress updates:
 ### Processing Options
 
 - **Force Reprocess** - Reprocess items that already have overlays
-  - ⚠️ Warning: This will create double overlays!
-  - Use only when you want to update existing overlays
+  - Automatically restores original poster from backup before applying new overlay
+  - Safe to use when updating overlay design or position
+  - Useful when changing rating sources (e.g., adding/removing RT scores)
 
 ## Integration with Arr Stack
 
@@ -166,10 +188,12 @@ networks:
 - Check backend logs for errors
 - Try accessing backend directly: `http://localhost:8000/`
 
-### WebSocket disconnects
-- Check nginx proxy configuration in `frontend/nginx.conf`
-- Verify WebSocket upgrade headers are set
-- Check browser console for WebSocket errors
+### WebSocket disconnects frequently
+- The UI automatically reconnects after 2 seconds, but if it keeps disconnecting:
+  - Check nginx proxy configuration in `frontend/nginx.conf`
+  - Verify WebSocket upgrade headers are set
+  - Check browser console for WebSocket errors
+  - Ensure backend is stable and not restarting repeatedly
 
 ## Performance
 
