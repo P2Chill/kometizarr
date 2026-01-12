@@ -1,110 +1,183 @@
 # Kometizarr Terraform Configuration
 
-Terraform configuration for deploying Kometizarr containers on the Mini PC.
+Deploy Kometizarr containers using Terraform for infrastructure-as-code management.
 
 ## Prerequisites
 
-- Terraform 1.9.0+
-- Docker Desktop running on WSL2
-- Docker provider configured
+- Terraform 1.0+ ([Download](https://www.terraform.io/downloads))
+- Docker installed and running
+- Git (to clone the repository)
 
-## Setup
+## Quick Start
 
-1. **Copy example variables:**
+### 1. Clone and Navigate
+
 ```bash
-cd terraform
+git clone https://github.com/P2Chill/kometizarr.git
+cd kometizarr/terraform
+```
+
+### 2. Create Variables File
+
+```bash
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-2. **Edit `terraform.tfvars` with your credentials:**
+Edit `terraform.tfvars` with your credentials:
 ```hcl
-plex_url   = "http://192.168.1.20:32400"
-plex_token = "your_actual_plex_token"
-
+plex_url        = "http://192.168.1.20:32400"
+plex_token      = "your_actual_plex_token"
 tmdb_api_key    = "your_actual_tmdb_key"
-omdb_api_key    = "your_actual_omdb_key"
+omdb_api_key    = "your_actual_omdb_key"  # Optional
 mdblist_api_key = "your_actual_mdblist_key"
 ```
 
-3. **Initialize Terraform:**
+**How to get your Plex token:** https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/
+
+### 3. Initialize Terraform
+
 ```bash
 terraform init
 ```
 
-4. **Review the plan:**
+### 4. Review the Plan
+
 ```bash
 terraform plan
 ```
 
-5. **Apply the configuration:**
+This shows you what Terraform will create:
+- `docker_network.kometizarr` - Isolated network
+- `docker_image.kometizarr_backend` - Backend image
+- `docker_image.kometizarr_frontend` - Frontend image
+- `docker_container.kometizarr_backend` - Backend container (port 8000)
+- `docker_container.kometizarr_frontend` - Frontend container (port 3001)
+
+### 5. Apply Configuration
+
 ```bash
 terraform apply
 ```
 
-## What Gets Created
+Type `yes` when prompted.
 
-- **Network:** `kometizarr` (bridge network)
-- **Backend Container:** `kometizarr-backend`
-  - Port: 8000
-  - Volumes: Project files, backups, temp
-  - Environment: Plex & API credentials
-- **Frontend Container:** `kometizarr-frontend`
-  - Port: 3001
-  - Serves React UI via Nginx
+### 6. Access the Web UI
 
-## Accessing Kometizarr
-
-After deployment, access the Web UI at:
+Open your browser to:
 ```
 http://localhost:3001
 ```
 
-## Updating Containers
+## What Gets Created
 
-When you make changes to the code:
+### Containers
+- **kometizarr-backend** - FastAPI backend on port 8000
+- **kometizarr-frontend** - React frontend on port 3001
+
+### Network
+- **kometizarr** - Bridge network for container communication
+
+### Volumes
+- `/path/to/kometizarr` → `/app/kometizarr` (project files)
+- `/path/to/kometizarr/data/backups` → `/backups` (poster backups)
+- `/path/to/kometizarr/data/temp` → `/temp` (temporary processing)
+
+All paths are calculated automatically based on where you cloned the repository.
+
+## Managing Containers
+
+### View Status
+
+```bash
+terraform show
+```
+
+### Rebuild Images
+
+If you update the code, rebuild with:
 
 ```bash
 terraform apply
 ```
 
-Terraform will detect file changes and rebuild the images automatically.
+Terraform will detect file changes and rebuild automatically.
 
-## Destroying
-
-To remove all Kometizarr containers and network:
+### Stop Containers
 
 ```bash
 terraform destroy
 ```
 
-## Integration with Mini PC Terraform
+This removes all containers, images, and networks. Your data in `data/backups` is preserved.
 
-You can add this to your main Mini PC Terraform configuration by:
+## Troubleshooting
 
-1. **Copy to main terraform directory:**
+### "Error: Duplicate required providers configuration"
+
+This happens if you're integrating with existing Terraform configs. Remove the `terraform {}` block from `providers.tf` and let your main config handle provider versions.
+
+### "Error: failed to read dockerfile"
+
+This is a known issue with the Docker provider's legacy builder. Workarounds:
+1. Build images manually first:
+   ```bash
+   cd ../web/backend && docker build -t kometizarr-backend:latest .
+   cd ../frontend && docker build -t kometizarr-frontend:latest .
+   ```
+2. Then modify terraform config to use existing images
+
+### Containers won't start
+
+Check Docker is running:
 ```bash
-cp terraform/kometizarr.tf ~/docker/terraform/
-cp terraform/variables.tf ~/docker/terraform/kometizarr_variables.tf
+docker ps
 ```
 
-2. **Add variables to main terraform.tfvars:**
+Check logs:
 ```bash
-# In ~/docker/terraform/terraform.tfvars
-plex_token      = "your_token"
-tmdb_api_key    = "your_key"
-omdb_api_key    = "your_key"
-mdblist_api_key = "your_key"
+docker logs kometizarr-backend
+docker logs kometizarr-frontend
 ```
 
-3. **Apply from main terraform:**
-```bash
-cd ~/docker/terraform
-terraform apply
-```
+### Port already in use
+
+If ports 3001 or 8000 are already in use, edit `kometizarr.tf` and change the `external` port numbers.
 
 ## Notes
 
-- **Sensitive Variables:** All API keys and tokens are marked as sensitive
-- **Auto-Rebuild:** Images rebuild automatically when source files change
-- **State Management:** Local state stored in `.terraform/`
-- **Git Safety:** `.gitignore` prevents committing secrets
+- **Automatic Rebuild:** Images rebuild when source files change (no manual triggers needed)
+- **Sensitive Variables:** API keys and tokens are marked as sensitive (won't show in logs)
+- **State Management:** Terraform state is stored locally in `.terraform/`
+- **Git Safety:** The `.gitignore` prevents committing secrets
+
+## Advanced: Integration with Existing Terraform
+
+If you already manage infrastructure with Terraform:
+
+1. **Copy files to your terraform directory:**
+   ```bash
+   cp kometizarr.tf /path/to/your/terraform/
+   ```
+
+2. **Add variables to your existing `variables.tf`** or create `kometizarr_variables.tf`
+
+3. **Add values to your `terraform.tfvars`**
+
+4. **Remove `providers.tf`** (use your existing provider config)
+
+5. **Adjust paths** if running from a different directory:
+   ```hcl
+   # Example: if running from ~/terraform and kometizarr is at ~/kometizarr
+   host_path = "/home/user/kometizarr"
+   ```
+
+## Cleanup
+
+To completely remove Kometizarr:
+
+```bash
+terraform destroy
+rm -rf .terraform/ terraform.tfstate*
+```
+
+This removes all containers, images, networks, and Terraform state. Backup data in `../data/backups` is **NOT** deleted.

@@ -1,11 +1,7 @@
-terraform {
-  required_providers {
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 3.0.2"
-    }
-  }
-}
+# Kometizarr - Plex Rating Overlay Web UI
+#
+# IMPORTANT: This config assumes you're running terraform from the terraform/ directory
+# If integrating with existing terraform, adjust paths accordingly
 
 # Kometizarr network
 resource "docker_network" "kometizarr" {
@@ -29,17 +25,17 @@ resource "docker_container" "kometizarr_backend" {
   }
 
   volumes {
-    host_path      = "/home/pieter/ai/kometizarr"
+    host_path      = abspath("${path.cwd}/..")
     container_path = "/app/kometizarr"
   }
 
   volumes {
-    host_path      = "/home/pieter/ai/kometizarr/data/backups"
+    host_path      = abspath("${path.cwd}/../data/backups")
     container_path = "/backups"
   }
 
   volumes {
-    host_path      = "/home/pieter/ai/kometizarr/data/temp"
+    host_path      = abspath("${path.cwd}/../data/temp")
     container_path = "/temp"
   }
 
@@ -78,13 +74,9 @@ resource "docker_image" "kometizarr_backend" {
   name = "kometizarr-backend:latest"
 
   build {
-    context    = "/home/pieter/ai/kometizarr/web/backend"
+    context    = abspath("${path.cwd}/../web/backend")
     dockerfile = "Dockerfile"
     tag        = ["kometizarr-backend:latest"]
-  }
-
-  triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset("/home/pieter/ai/kometizarr/web/backend", "**") : filesha1("/home/pieter/ai/kometizarr/web/backend/${f}")]))
   }
 }
 
@@ -93,12 +85,8 @@ resource "docker_image" "kometizarr_frontend" {
   name = "kometizarr-frontend:latest"
 
   build {
-    context    = "/home/pieter/ai/kometizarr/web/frontend"
+    context    = abspath("${path.cwd}/../web/frontend")
     dockerfile = "Dockerfile"
     tag        = ["kometizarr-frontend:latest"]
-  }
-
-  triggers = {
-    dir_sha1 = sha1(join("", [for f in fileset("/home/pieter/ai/kometizarr/web/frontend", "**") : filesha1("/home/pieter/ai/kometizarr/web/frontend/${f}")]))
   }
 }
