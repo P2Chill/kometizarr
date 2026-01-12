@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.pytest_cache
+.coverage
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+
+# Data directories (should be mounted as volumes, not copied)
+data/
+*.db
+
+# Documentation
+docs/
+examples/
+*.md
+!README.md
+
+# Terraform
+terraform/
+*.tfstate
+*.tfstate.backup
+
+# Landing page (separate deployment)
+landing-page/
+
+# Test files
+tests/
+test_*.py
+
+# Temp files
+*.log
+*.tmp
+temp/
+
+# Node modules (for frontend)
+node_modules/

@@ -8,12 +8,15 @@ RUN apt-get update && apt-get install -y \
     fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements.txt .
+# Copy requirements from backend
+COPY web/backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
-COPY . /app/backend
+# Copy entire project to /app/kometizarr (includes src/, assets/, etc.)
+COPY . /app/kometizarr
+
+# Copy backend code to /app/backend (for uvicorn to find backend.main:app)
+COPY web/backend /app/backend
 
 # Set Python path to include kometizarr project
 ENV PYTHONPATH=/app/kometizarr:$PYTHONPATH

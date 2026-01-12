@@ -1,6 +1,8 @@
 services:
   backend:
-    build: ./web/backend
+    build:
+      context: .
+      dockerfile: web/backend/Dockerfile
     container_name: kometizarr-backend
     ports:
       - "8000:8000"
