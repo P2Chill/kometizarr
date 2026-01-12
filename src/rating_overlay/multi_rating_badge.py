@@ -23,8 +23,13 @@ class MultiRatingBadge:
         if assets_dir:
             self.assets_dir = Path(assets_dir)
         else:
-            # Default to project root assets
-            self.assets_dir = Path(__file__).parent.parent.parent / 'assets' / 'logos'
+            # Try Docker mount path first, fall back to local development path
+            docker_path = Path('/app/kometizarr/assets/logos')
+            if docker_path.exists():
+                self.assets_dir = docker_path
+            else:
+                # Local development - relative to this file
+                self.assets_dir = Path(__file__).parent.parent.parent / 'assets' / 'logos'
 
         # Load logos
         self.logos = self._load_logos()
