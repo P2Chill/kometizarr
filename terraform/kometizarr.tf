@@ -11,7 +11,7 @@ resource "docker_network" "kometizarr" {
 # Backend container
 resource "docker_container" "kometizarr_backend" {
   name  = "kometizarr-backend"
-  image = docker_image.kometizarr_backend.image_id
+  image = docker_image.kometizarr_backend.name
 
   restart = "unless-stopped"
 
@@ -52,7 +52,7 @@ resource "docker_container" "kometizarr_backend" {
 # Frontend container
 resource "docker_container" "kometizarr_frontend" {
   name  = "kometizarr-frontend"
-  image = docker_image.kometizarr_frontend.image_id
+  image = docker_image.kometizarr_frontend.name
 
   restart = "unless-stopped"
 
@@ -71,23 +71,31 @@ resource "docker_container" "kometizarr_frontend" {
 }
 
 # Backend image
+# NOTE: Pre-built images are pulled from GitHub Container Registry
+# If you want to build locally instead, uncomment the build block below
 resource "docker_image" "kometizarr_backend" {
-  name = "kometizarr-backend:latest"
+  name         = "ghcr.io/p2chill/kometizarr-backend:latest"
+  keep_locally = true  # Don't delete image when destroyed
 
-  build {
-    context    = abspath("${path.cwd}/../web/backend")
-    dockerfile = "Dockerfile"
-    tag        = ["kometizarr-backend:latest"]
-  }
+  # Uncomment to build locally instead of pulling from registry:
+  # build {
+  #   context    = abspath("${path.cwd}/../web/backend")
+  #   dockerfile = "Dockerfile"
+  #   tag        = ["kometizarr-backend:latest"]
+  # }
 }
 
 # Frontend image
+# NOTE: Pre-built images are pulled from GitHub Container Registry
+# If you want to build locally instead, uncomment the build block below
 resource "docker_image" "kometizarr_frontend" {
-  name = "kometizarr-frontend:latest"
+  name         = "ghcr.io/p2chill/kometizarr-frontend:latest"
+  keep_locally = true  # Don't delete image when destroyed
 
-  build {
-    context    = abspath("${path.cwd}/../web/frontend")
-    dockerfile = "Dockerfile"
-    tag        = ["kometizarr-frontend:latest"]
-  }
+  # Uncomment to build locally instead of pulling from registry:
+  # build {
+  #   context    = abspath("${path.cwd}/../web/frontend")
+  #   dockerfile = "Dockerfile"
+  #   tag        = ["kometizarr-frontend:latest"]
+  # }
 }
