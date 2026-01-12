@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Kometizarr API", version="1.0.5")
+app = FastAPI(title="Kometizarr API", version="1.0.6")
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -93,7 +93,7 @@ class LibraryStats(BaseModel):
 @app.get("/")
 async def root():
     """Health check"""
-    return {"status": "ok", "app": "Kometizarr API", "version": "1.0.5"}
+    return {"status": "ok", "app": "Kometizarr API", "version": "1.0.6"}
 
 
 @app.get("/api/libraries")

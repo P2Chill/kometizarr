@@ -58,6 +58,12 @@ Kometizarr automatically adds gorgeous multi-source rating badges to your Plex m
 
 ## 🚀 Quick Start
 
+**📦 Pre-built Docker Images Available:**
+- **Docker Hub:** `p2chill/kometizarr-backend:latest` & `p2chill/kometizarr-frontend:latest`
+- **GitHub Container Registry:** `ghcr.io/p2chill/kometizarr-backend:latest` & `ghcr.io/p2chill/kometizarr-frontend:latest`
+
+No build required - just pull and run! ⚡
+
 ### Method 1: Web UI (Recommended) 🌐
 
 The easiest way to use Kometizarr is with the Web UI - a beautiful dashboard with live progress tracking!
