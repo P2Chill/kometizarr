@@ -117,7 +117,7 @@ Open `http://localhost:3001` - done in 5 seconds! 🎉
 
 **Alternative registries:**
 - **Docker Hub:** Replace `ghcr.io/p2chill/` with `p2chill/`
-- **Version pinning:** Replace `:latest` with `:v1.0.6` for stable releases
+- **Version pinning:** Replace `:latest` with `:v1.0.7` for stable releases
 
 #### Option B: Clone Repository (For Development)
 

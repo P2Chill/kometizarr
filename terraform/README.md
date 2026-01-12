@@ -100,7 +100,7 @@ Kometizarr images are pulled from GitHub Container Registry. To update:
 terraform apply
 ```
 
-Terraform will automatically pull the latest `:latest` tag. For specific versions, edit `kometizarr.tf` to use version tags like `:v1.0.6`.
+Terraform will automatically pull the latest `:latest` tag. For specific versions, edit `kometizarr.tf` to use version tags like `:v1.0.7`.
 
 ### Stop Containers
 
@@ -144,7 +144,7 @@ If ports 3001 or 8000 are already in use, edit `kometizarr.tf` and change the `e
 ## Notes
 
 - **Pre-built Images:** Images are pulled from GitHub Container Registry (no build required)
-- **Version Pinning:** Use `:latest` for auto-updates or `:v1.0.6` for stable versions
+- **Version Pinning:** Use `:latest` for auto-updates or `:v1.0.7` for stable versions
 - **Sensitive Variables:** API keys and tokens are marked as sensitive (won't show in logs)
 - **State Management:** Terraform state is stored locally in `.terraform/`
 - **Git Safety:** The `.gitignore` prevents committing secrets
