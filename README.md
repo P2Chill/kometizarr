@@ -68,7 +68,58 @@ No build required - just pull and run! ⚡
 
 The easiest way to use Kometizarr is with the Web UI - a beautiful dashboard with live progress tracking!
 
-#### Option A: Docker Compose (Quick Start)
+#### Option A: Direct Pull (No Clone Required) ⚡
+
+Create a `docker-compose.yml` file:
+
+```yaml
+services:
+  backend:
+    image: ghcr.io/p2chill/kometizarr-backend:latest
+    container_name: kometizarr-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/backups:/backups  # Poster backups (PERSISTENT)
+      - ./data/temp:/temp  # Temp processing
+    environment:
+      - PLEX_URL=http://YOUR_PLEX_IP:32400
+      - PLEX_TOKEN=YOUR_PLEX_TOKEN
+      - TMDB_API_KEY=YOUR_TMDB_KEY
+      - OMDB_API_KEY=YOUR_OMDB_KEY  # Optional
+      - MDBLIST_API_KEY=YOUR_MDBLIST_KEY
+    restart: unless-stopped
+    networks:
+      - kometizarr
+
+  frontend:
+    image: ghcr.io/p2chill/kometizarr-frontend:latest
+    container_name: kometizarr-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - kometizarr
+
+networks:
+  kometizarr:
+    driver: bridge
+```
+
+Then run:
+```bash
+docker compose up -d
+```
+
+Open `http://localhost:3001` - done in 5 seconds! 🎉
+
+**Alternative registries:**
+- **Docker Hub:** Replace `ghcr.io/p2chill/` with `p2chill/`
+- **Version pinning:** Replace `:latest` with `:v1.0.6` for stable releases
+
+#### Option B: Clone Repository (For Development)
 
 ```bash
 git clone https://github.com/P2Chill/kometizarr.git
