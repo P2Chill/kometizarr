@@ -39,7 +39,7 @@ MDBLIST_API_KEY=YOUR_MDBLIST_KEY  # Optional
 
 From the root `kometizarr/` directory:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This will:
@@ -168,7 +168,7 @@ networks:
     external: true
 ```
 
-Then in `docker-compose.yml`:
+Then in `docker compose.yml`:
 ```yaml
 networks:
   kometizarr:

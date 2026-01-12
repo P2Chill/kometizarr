@@ -16,7 +16,8 @@ resource "docker_container" "kometizarr_backend" {
   restart = "unless-stopped"
 
   networks_advanced {
-    name = docker_network.kometizarr.name
+    name    = docker_network.kometizarr.name
+    aliases = ["backend"]
   }
 
   ports {
