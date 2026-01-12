@@ -92,15 +92,15 @@ All paths are calculated automatically based on where you cloned the repository.
 terraform show
 ```
 
-### Rebuild Images
+### Update to Latest Version
 
-If you update the code, rebuild with:
+Kometizarr images are pulled from GitHub Container Registry. To update:
 
 ```bash
 terraform apply
 ```
 
-Terraform will detect file changes and rebuild automatically.
+Terraform will automatically pull the latest `:latest` tag. For specific versions, edit `kometizarr.tf` to use version tags like `:v1.0.6`.
 
 ### Stop Containers
 
@@ -116,15 +116,13 @@ This removes all containers, images, and networks. Your data in `data/backups` i
 
 This happens if you're integrating with existing Terraform configs. Remove the `terraform {}` block from `providers.tf` and let your main config handle provider versions.
 
-### "Error: failed to read dockerfile"
+### Images won't pull
 
-This is a known issue with the Docker provider's legacy builder. Workarounds:
-1. Build images manually first:
-   ```bash
-   cd ../web/backend && docker build -t kometizarr-backend:latest .
-   cd ../frontend && docker build -t kometizarr-frontend:latest .
-   ```
-2. Then modify terraform config to use existing images
+If you get errors pulling images from the registry:
+1. Check Docker daemon is running: `docker ps`
+2. Try pulling manually: `docker pull ghcr.io/p2chill/kometizarr-backend:latest`
+3. Check your internet connection
+4. Alternative: Use Docker Hub instead by editing `kometizarr.tf` to use `p2chill/kometizarr-*` images
 
 ### Containers won't start
 
@@ -145,7 +143,8 @@ If ports 3001 or 8000 are already in use, edit `kometizarr.tf` and change the `e
 
 ## Notes
 
-- **Automatic Rebuild:** Images rebuild when source files change (no manual triggers needed)
+- **Pre-built Images:** Images are pulled from GitHub Container Registry (no build required)
+- **Version Pinning:** Use `:latest` for auto-updates or `:v1.0.6` for stable versions
 - **Sensitive Variables:** API keys and tokens are marked as sensitive (won't show in logs)
 - **State Management:** Terraform state is stored locally in `.terraform/`
 - **Git Safety:** The `.gitignore` prevents committing secrets
