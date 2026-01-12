@@ -69,11 +69,11 @@ git clone https://github.com/P2Chill/kometizarr.git
 cd kometizarr
 cp .env.example .env
 # Edit .env with your Plex credentials and API keys
-docker-compose up -d
+docker compose up -d
 ```
 
 <details>
-<summary>📄 View docker-compose.yml</summary>
+<summary>📄 View docker compose.yml</summary>
 
 ```yaml
 services:
@@ -117,21 +117,6 @@ networks:
 
 Then open `http://localhost:3001` in your browser! 🎉
 
-#### Option B: Terraform (Infrastructure as Code)
-
-For those managing infrastructure with Terraform:
-
-```bash
-git clone https://github.com/P2Chill/kometizarr.git
-cd kometizarr/terraform
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your credentials
-terraform init
-terraform apply
-```
-
-See [Terraform Documentation](terraform/README.md) for details.
-
 **Features:**
 - 📊 Visual dashboard with library stats
 - ⚡ Real-time progress with WebSocket updates (auto-reconnect on disconnection)
@@ -141,7 +126,6 @@ See [Terraform Documentation](terraform/README.md) for details.
 - 🔄 Browser refresh resilience (resumes monitoring active operations)
 - ⏱️ 10-second countdown on completion with skip option
 - 🛑 Cancel/stop button to abort processing mid-run
-- 🏗️ Infrastructure as code with Terraform
 
 See [Web UI Documentation](web/README.md) for details.
 
@@ -297,15 +281,10 @@ kometizarr/
 │   │   ├── nginx.conf
 │   │   └── package.json
 │   └── README.md                    # Web UI documentation
-├── terraform/
-│   ├── kometizarr.tf                # Main Terraform config
-│   ├── variables.tf                 # Variable definitions
-│   ├── terraform.tfvars.example     # Example variables
-│   └── README.md                    # Terraform documentation
 ├── assets/
 │   └── logos/                       # RT tomato/popcorn logos
 ├── examples/                        # Example scripts
-├── docker-compose.yml               # Docker Compose configuration
+├── docker compose.yml               # Docker Compose configuration
 ├── .env.example                     # Environment variables template
 ├── config.example.json              # CLI configuration example
 └── README.md
@@ -405,7 +384,7 @@ manager.process_library()  # Preview without applying
 - [x] Collection management (decades, studios, keywords, genres)
 - [x] **Web UI** - React dashboard with FastAPI backend
 - [x] **Real-time progress** - WebSocket updates for live tracking
-- [x] **Docker deployment** - Docker Compose + Terraform support
+- [x] **Docker deployment** - Docker Compose support
 - [x] **Smart library detection** - Auto-detect movie vs TV show libraries
 - [x] **Network/Studio presets** - 13 streaming services + 12 movie studios
 - [x] **Collection visibility controls** - Hide collections from library view
