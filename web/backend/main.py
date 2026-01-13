@@ -77,7 +77,9 @@ restore_start_time = None
 
 class ProcessRequest(BaseModel):
     library_name: str
-    position: str = "northwest"
+    position: str = "northwest"  # Legacy unified badge mode
+    badge_position: Optional[Dict[str, float]] = None  # Legacy: free positioning for unified badge {x: %, y: %}
+    badge_positions: Optional[Dict[str, Dict[str, float]]] = None  # New: individual badge positions {'tmdb': {'x': 5, 'y': 5}, ...}
     force: bool = False
     limit: Optional[int] = None
     rating_sources: Optional[Dict[str, bool]] = None  # Which ratings to show
@@ -365,7 +367,20 @@ async def process_library_background(request: ProcessRequest):
             processing_state["progress"] = i
             processing_state["current_item"] = item.title
 
-            result = manager.process_movie(item, position=request.position, force=request.force)
+            # Determine positioning mode
+            # 1. If badge_positions provided, use 4-badge mode
+            # 2. Otherwise, use legacy unified badge with position (string or dict)
+            if request.badge_positions:
+                result = manager.process_movie(
+                    item,
+                    position=request.position,  # Not used in 4-badge mode, but kept for compat
+                    force=request.force,
+                    badge_positions=request.badge_positions
+                )
+            else:
+                # Legacy unified badge mode
+                position_param = request.badge_position if request.badge_position else request.position
+                result = manager.process_movie(item, position=position_param, force=request.force)
 
             # Handle three-state return: True=success, None=skip, False=fail
             if result is None:

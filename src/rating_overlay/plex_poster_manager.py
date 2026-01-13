@@ -138,15 +138,18 @@ class PlexPosterManager:
         self,
         movie,
         position: str = 'northwest',
-        force: bool = False
+        force: bool = False,
+        badge_positions: Optional[Dict[str, Dict[str, float]]] = None
     ) -> Optional[bool]:
         """
         Process a single movie: backup, overlay, upload
 
         Args:
             movie: PlexAPI movie object
-            position: Badge position ('northeast', 'northwest', etc.)
+            position: Badge position ('northeast', 'northwest', etc.) - legacy unified mode
             force: Force reprocessing even if already has overlay
+            badge_positions: Optional dict for individual badge positions
+                           {'tmdb': {'x': 5, 'y': 5}, 'imdb': {'x': 20, 'y': 5}, ...}
 
         Returns:
             True if successfully processed
@@ -274,7 +277,8 @@ class PlexPosterManager:
                 ratings=ratings,
                 output_path=str(overlay_path),
                 position=position,
-                badge_style=self.badge_style  # Pass custom styling options
+                badge_style=self.badge_style,  # Pass custom styling options
+                badge_positions=badge_positions  # Pass individual badge positions if provided
             )
 
             # Save overlay version to backup

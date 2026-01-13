@@ -181,6 +181,160 @@ class MultiRatingBadge:
 
         return badge
 
+    def create_individual_badge(
+        self,
+        source: str,
+        rating: float,
+        poster_size: Tuple[int, int],
+        badge_style: Optional[Dict[str, Any]] = None
+    ) -> Image.Image:
+        """
+        Create a single compact badge with logo on top, rating underneath
+
+        Args:
+            source: Rating source ('tmdb', 'imdb', 'rt_critic', 'rt_audience')
+            rating: Rating value
+            poster_size: (width, height) of poster for scaling
+            badge_style: Optional styling options
+
+        Returns:
+            PIL Image with transparent background
+        """
+        poster_width, poster_height = poster_size
+
+        # Apply custom styling or use defaults
+        style = badge_style or {}
+        badge_size_percent = style.get('individual_badge_size', 12) / 100  # 12% of poster width by default
+        font_multiplier = style.get('font_size_multiplier', 1.0)
+        rating_color_hex = style.get('rating_color', '#FFD700')  # Gold
+        background_opacity = style.get('background_opacity', 128)
+
+        # Convert hex color to RGB tuple
+        rating_color = tuple(int(rating_color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (255,)
+
+        # Badge size - compact square-ish badge
+        badge_width = int(poster_width * badge_size_percent)
+        badge_height = int(badge_width * 1.4)  # Slightly taller than wide (logo + number)
+
+        # Create badge with transparent background
+        badge = Image.new('RGBA', (badge_width, badge_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(badge)
+
+        # Draw semi-transparent black rounded rectangle background
+        corner_radius = int(badge_width * 0.1)  # 10% of badge width
+        draw.rounded_rectangle(
+            [(0, 0), (badge_width, badge_height)],
+            radius=corner_radius,
+            fill=(0, 0, 0, background_opacity)
+        )
+
+        # For RT scores, dynamically select logo based on score
+        logo_key = source
+        if source == 'rt_critic':
+            logo_key = 'rt_fresh' if rating >= 60 else 'rt_rotten'
+        elif source == 'rt_audience':
+            logo_key = 'rt_audience_fresh' if rating >= 60 else 'rt_audience_rotten'
+
+        # Draw logo in top 60% of badge
+        logo = self.logos.get(logo_key)
+        logo_section_height = int(badge_height * 0.6)
+        padding = int(badge_width * 0.1)
+
+        if logo:
+            # Calculate logo size to fit in top section
+            max_logo_size = min(badge_width - (padding * 2), logo_section_height - padding)
+
+            # Resize logo maintaining aspect ratio
+            orig_width, orig_height = logo.size
+            aspect_ratio = orig_width / orig_height
+
+            if aspect_ratio > 1:
+                # Wider than tall
+                logo_width = max_logo_size
+                logo_height = int(max_logo_size / aspect_ratio)
+            else:
+                # Taller than wide or square
+                logo_height = max_logo_size
+                logo_width = int(max_logo_size * aspect_ratio)
+
+            logo_resized = logo.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
+
+            # Center logo in top section
+            logo_x = (badge_width - logo_width) // 2
+            logo_y = (logo_section_height - logo_height) // 2
+
+            badge.paste(logo_resized, (logo_x, logo_y), logo_resized)
+
+        # Draw rating in bottom 40% of badge
+        number_section_top = logo_section_height
+        number_section_height = badge_height - logo_section_height
+
+        # Load font
+        font_size = int(badge_width * 0.35 * font_multiplier)  # 35% of badge width
+        try:
+            font_rating = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size
+            )
+            font_percent = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(font_size * 0.6)
+            )
+        except:
+            font_rating = ImageFont.load_default()
+            font_percent = ImageFont.load_default()
+
+        # Format rating
+        if source in ['rt_critic', 'rt_audience']:
+            rating_text = f"{int(rating)}"
+            percent_text = "%"
+        else:
+            rating_text = f"{rating:.1f}"
+            percent_text = ""
+
+        # Center position in bottom section
+        center_x = badge_width // 2
+        center_y = number_section_top + (number_section_height // 2)
+
+        # Calculate total text width if there's a percent sign
+        if percent_text:
+            rating_bbox = draw.textbbox((0, 0), rating_text, font=font_rating)
+            percent_bbox = draw.textbbox((0, 0), percent_text, font=font_percent)
+            total_width = (rating_bbox[2] - rating_bbox[0]) + (percent_bbox[2] - percent_bbox[0]) + 2
+
+            # Draw number (left side)
+            self._draw_text_with_shadow(
+                draw,
+                (center_x - total_width // 2, center_y),
+                rating_text,
+                font_rating,
+                rating_color,
+                shadow_offset=max(2, int(badge_width * 0.02)),
+                anchor="lm"
+            )
+
+            # Draw % (right side)
+            self._draw_text_with_shadow(
+                draw,
+                (center_x + total_width // 2 - (percent_bbox[2] - percent_bbox[0]), center_y + int(font_size * 0.1)),
+                percent_text,
+                font_percent,
+                (255, 255, 255, 255),
+                shadow_offset=max(1, int(badge_width * 0.01)),
+                anchor="lm"
+            )
+        else:
+            # Just center the number
+            self._draw_text_with_shadow(
+                draw,
+                (center_x, center_y),
+                rating_text,
+                font_rating,
+                rating_color,
+                shadow_offset=max(2, int(badge_width * 0.02)),
+                anchor="mm"  # Middle-middle anchor
+            )
+
+        return badge
+
     def _draw_rating_row(
         self,
         badge: Image.Image,
@@ -332,17 +486,26 @@ class MultiRatingBadge:
         ratings: Dict[str, float],
         output_path: str,
         position: str = 'northeast',
-        badge_style: Optional[Dict[str, Any]] = None
+        badge_style: Optional[Dict[str, Any]] = None,
+        badge_positions: Optional[Dict[str, Dict[str, float]]] = None
     ) -> Image.Image:
         """
-        Apply multi-rating badge to poster
+        Apply rating badge(s) to poster
+
+        Supports two modes:
+        1. Unified badge mode (legacy): Single badge with all ratings
+        2. Individual badge mode (new): Separate badge for each rating source
 
         Args:
             poster_path: Path to poster image
             ratings: Dict of ratings {'tmdb': 7.2, 'imdb': 7.5, 'rt_critic': 85, 'rt_audience': 92}
             output_path: Output path
-            position: Badge position
+            position: Badge position for unified mode (legacy)
             badge_style: Optional styling options
+            badge_positions: Optional dict for individual mode. Format:
+                            {'tmdb': {'x': 5, 'y': 5}, 'imdb': {'x': 20, 'y': 5}, ...}
+                            If source key exists, that badge is enabled at that position.
+                            X/Y are percentages (0-100) of poster dimensions.
 
         Returns:
             PIL Image
@@ -351,38 +514,76 @@ class MultiRatingBadge:
         poster = Image.open(poster_path).convert('RGBA')
         poster_width, poster_height = poster.size
 
-        # Create badge
-        badge = self.create_multi_rating_badge(
-            ratings=ratings,
-            poster_size=(poster_width, poster_height),
-            position=position,
-            badge_style=badge_style
-        )
+        # MODE 1: Individual badges (new 4-badge system)
+        if badge_positions:
+            for source, rating in ratings.items():
+                # Check if this source is enabled (key exists in badge_positions)
+                if source not in badge_positions:
+                    continue
 
-        badge_width, badge_height = badge.size
+                pos = badge_positions[source]
+                x_percent = pos.get('x', 5)
+                y_percent = pos.get('y', 5)
 
-        # Calculate position - small offset from edges
-        offset_x = int(poster_width * 0.02)  # 2% from edges (close to edge)
-        offset_y = int(poster_height * 0.02)
+                # Create individual badge
+                badge = self.create_individual_badge(
+                    source=source,
+                    rating=rating,
+                    poster_size=(poster_width, poster_height),
+                    badge_style=badge_style
+                )
 
-        positions = {
-            'northeast': (poster_width - badge_width - offset_x, offset_y),
-            'northwest': (offset_x, offset_y),
-            'southeast': (poster_width - badge_width - offset_x, poster_height - badge_height - offset_y),
-            'southwest': (offset_x, poster_height - badge_height - offset_y)
-        }
+                # Convert percentage to pixels
+                badge_x = int((x_percent / 100) * poster_width)
+                badge_y = int((y_percent / 100) * poster_height)
 
-        badge_x, badge_y = positions.get(position, positions['northeast'])
+                # Composite badge onto poster
+                poster.paste(badge, (badge_x, badge_y), badge)
 
-        # Composite badge onto poster
-        poster.paste(badge, (badge_x, badge_y), badge)
+            # Save
+            poster_rgb = poster.convert('RGB')
+            poster_rgb.save(output_path, 'JPEG', quality=95)
 
-        # Save
-        poster_rgb = poster.convert('RGB')
-        poster_rgb.save(output_path, 'JPEG', quality=95)
+            enabled_sources = ', '.join([f'{k.upper()}: {v}' for k, v in ratings.items() if k in badge_positions])
+            print(f"✓ Applied individual rating badges: {output_path}")
+            print(f"  Enabled badges: {enabled_sources}")
 
-        print(f"✓ Applied multi-rating overlay: {output_path}")
-        print(f"  Position: {position} ({badge_x}, {badge_y})")
-        print(f"  Ratings: {', '.join([f'{k.upper()}: {v}' for k, v in ratings.items()])}")
+            return poster
 
-        return poster
+        # MODE 2: Unified badge (legacy - backward compatible)
+        else:
+            # Create unified badge with all ratings
+            badge = self.create_multi_rating_badge(
+                ratings=ratings,
+                poster_size=(poster_width, poster_height),
+                position=position,
+                badge_style=badge_style
+            )
+
+            badge_width, badge_height = badge.size
+
+            # Calculate position - small offset from edges
+            offset_x = int(poster_width * 0.02)  # 2% from edges (close to edge)
+            offset_y = int(poster_height * 0.02)
+
+            positions = {
+                'northeast': (poster_width - badge_width - offset_x, offset_y),
+                'northwest': (offset_x, offset_y),
+                'southeast': (poster_width - badge_width - offset_x, poster_height - badge_height - offset_y),
+                'southwest': (offset_x, poster_height - badge_height - offset_y)
+            }
+
+            badge_x, badge_y = positions.get(position, positions['northeast'])
+
+            # Composite badge onto poster
+            poster.paste(badge, (badge_x, badge_y), badge)
+
+            # Save
+            poster_rgb = poster.convert('RGB')
+            poster_rgb.save(output_path, 'JPEG', quality=95)
+
+            print(f"✓ Applied multi-rating overlay: {output_path}")
+            print(f"  Position: {position} ({badge_x}, {badge_y})")
+            print(f"  Ratings: {', '.join([f'{k.upper()}: {v}' for k, v in ratings.items()])}")
+
+            return poster

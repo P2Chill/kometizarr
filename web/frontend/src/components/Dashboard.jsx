@@ -5,9 +5,19 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
   const [selectedLibrary, setSelectedLibrary] = useState(null)
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [position, setPosition] = useState('northwest')
+  const [position, setPosition] = useState('northwest')  // Keep for backward compat display
+  const [badgePositions, setBadgePositions] = useState(() => {
+    // Load from localStorage or set smart defaults (4 corners)
+    const saved = localStorage.getItem('kometizarr_badge_positions')
+    return saved ? JSON.parse(saved) : {
+      tmdb: { x: 2, y: 2 },           // Top-left
+      imdb: { x: 70, y: 2 },          // Top-right (70% across to fit ~12% badge + margin)
+      rt_critic: { x: 2, y: 78 },      // Bottom-left (78% down to fit ~20% badge + margin)
+      rt_audience: { x: 70, y: 78 }    // Bottom-right
+    }
+  })
+  const [activeDragBadge, setActiveDragBadge] = useState(null)  // Which badge is being dragged
   const [force, setForce] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
   const [ratingSources, setRatingSources] = useState(() => {
     // Load from localStorage or default to all enabled
     const saved = localStorage.getItem('kometizarr_rating_sources')
@@ -81,29 +91,63 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     localStorage.setItem('kometizarr_badge_style', JSON.stringify(updated))
   }
 
-  const handlePosterClick = (e) => {
+  const handlePosterDrag = (e, badgeSource) => {
+    if (!activeDragBadge && !badgeSource) return  // Not dragging
+
+    const source = badgeSource || activeDragBadge
+    if (!source || !ratingSources[source]) return  // Badge not enabled
+
     const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const clickX = e.clientX - rect.left
+    const clickY = e.clientY - rect.top
 
-    // Determine which quadrant was clicked
-    const isLeft = x < rect.width / 2
-    const isTop = y < rect.height / 2
+    // Calculate position as percentage of poster dimensions (0-100)
+    // Individual badges are small (~12% of poster width)
+    const badgeWidthPercent = 12
+    const badgeHeightPercent = 17  // 1.4x aspect ratio
 
-    // Set position based on quadrant
-    if (isTop && isLeft) {
-      setPosition('northwest')
-    } else if (isTop && !isLeft) {
-      setPosition('northeast')
-    } else if (!isTop && isLeft) {
-      setPosition('southwest')
-    } else {
-      setPosition('southeast')
+    // Center badge on cursor
+    let xPercent = (clickX / rect.width) * 100 - (badgeWidthPercent / 2)
+    let yPercent = (clickY / rect.height) * 100 - (badgeHeightPercent / 2)
+
+    // Clamp to edges (2% minimum margin, 100% - badge size maximum)
+    xPercent = Math.max(2, Math.min(xPercent, 100 - badgeWidthPercent - 2))
+    yPercent = Math.max(2, Math.min(yPercent, 100 - badgeHeightPercent - 2))
+
+    const newPosition = { x: Math.round(xPercent), y: Math.round(yPercent) }
+
+    // Update only this badge's position
+    const updated = { ...badgePositions, [source]: newPosition }
+    setBadgePositions(updated)
+    localStorage.setItem('kometizarr_badge_positions', JSON.stringify(updated))
+  }
+
+  const handleBadgeMouseDown = (e, badgeSource) => {
+    e.stopPropagation()  // Prevent poster click
+    setActiveDragBadge(badgeSource)
+    handlePosterDrag(e, badgeSource)  // Move immediately on click
+  }
+
+  const handlePosterMouseMove = (e) => {
+    if (activeDragBadge) {
+      handlePosterDrag(e)
     }
+  }
+
+  const handleMouseUp = () => {
+    setActiveDragBadge(null)
   }
 
   const startProcessing = async () => {
     if (!selectedLibrary) return
+
+    // Filter badge_positions to only include enabled sources
+    const enabledBadgePositions = {}
+    Object.keys(ratingSources).forEach(source => {
+      if (ratingSources[source] && badgePositions[source]) {
+        enabledBadgePositions[source] = badgePositions[source]
+      }
+    })
 
     try {
       const res = await fetch('/api/process', {
@@ -111,7 +155,8 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           library_name: selectedLibrary.name,
-          position,
+          position,  // Legacy, kept for backward compat
+          badge_positions: enabledBadgePositions,  // New: individual badge positions
           force,
           rating_sources: ratingSources,
           badge_style: badgeStyle,  // Include badge styling options
@@ -219,71 +264,148 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
         <h2 className="text-xl font-semibold mb-4">Processing Options</h2>
         <div className="space-y-4">
-          {/* Position - Draggable Visual Selector */}
+          {/* Position - 4 Draggable Badges */}
           <div>
-            <label className="block text-sm font-medium mb-2">Badge Position</label>
+            <label className="block text-sm font-medium mb-2">Badge Positions</label>
             <div className="bg-gray-900 rounded-lg p-4">
               <div className="flex items-start gap-4">
                 {/* Draggable Poster Preview */}
                 <div className="relative">
                   <svg
                     viewBox="0 0 120 168"
-                    className="w-40 h-auto cursor-pointer"
-                    onClick={handlePosterClick}
-                    onMouseMove={(e) => isDragging && handlePosterClick(e)}
-                    onMouseDown={() => setIsDragging(true)}
-                    onMouseUp={() => setIsDragging(false)}
-                    onMouseLeave={() => setIsDragging(false)}
+                    className="w-48 h-auto select-none"
+                    onMouseMove={handlePosterMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
                   >
                     {/* Poster Background */}
                     <rect x="0" y="0" width="120" height="168" fill="#1f2937" stroke="#4b5563" strokeWidth="2" rx="3" />
 
-                    {/* Quadrant divider lines (subtle) */}
-                    <line x1="60" y1="0" x2="60" y2="168" stroke="#374151" strokeWidth="1" strokeDasharray="2,2" opacity="0.3" />
-                    <line x1="0" y1="84" x2="120" y2="84" stroke="#374151" strokeWidth="1" strokeDasharray="2,2" opacity="0.3" />
+                    {/* Individual Badges - only show enabled ones */}
+                    {ratingSources.tmdb && badgePositions.tmdb && (
+                      <g
+                        className="cursor-move"
+                        onMouseDown={(e) => handleBadgeMouseDown(e, 'tmdb')}
+                      >
+                        <rect
+                          x={(badgePositions.tmdb.x / 100) * 120}
+                          y={(badgePositions.tmdb.y / 100) * 168}
+                          width="14"
+                          height="20"
+                          fill="#10b981"
+                          fillOpacity="0.9"
+                          rx="2"
+                        />
+                        <text
+                          x={(badgePositions.tmdb.x / 100) * 120 + 7}
+                          y={(badgePositions.tmdb.y / 100) * 168 + 12}
+                          fontSize="8"
+                          fill="#fff"
+                          textAnchor="middle"
+                          className="pointer-events-none select-none"
+                        >
+                          T
+                        </text>
+                      </g>
+                    )}
 
-                    {/* Badge Rectangle - positioned based on selection */}
-                    <rect
-                      x={position.includes('west') ? 6 : 70}
-                      y={position.includes('north') ? 6 : 120}
-                      width="44"
-                      height="40"
-                      fill="#3b82f6"
-                      fillOpacity="0.9"
-                      rx="3"
-                      className="pointer-events-none"
-                    />
+                    {ratingSources.imdb && badgePositions.imdb && (
+                      <g
+                        className="cursor-move"
+                        onMouseDown={(e) => handleBadgeMouseDown(e, 'imdb')}
+                      >
+                        <rect
+                          x={(badgePositions.imdb.x / 100) * 120}
+                          y={(badgePositions.imdb.y / 100) * 168}
+                          width="14"
+                          height="20"
+                          fill="#f59e0b"
+                          fillOpacity="0.9"
+                          rx="2"
+                        />
+                        <text
+                          x={(badgePositions.imdb.x / 100) * 120 + 7}
+                          y={(badgePositions.imdb.y / 100) * 168 + 12}
+                          fontSize="8"
+                          fill="#000"
+                          textAnchor="middle"
+                          fontWeight="bold"
+                          className="pointer-events-none select-none"
+                        >
+                          I
+                        </text>
+                      </g>
+                    )}
 
-                    {/* Rating indicators on badge */}
-                    <circle
-                      cx={position.includes('west') ? 15 : 79}
-                      cy={position.includes('north') ? 18 : 132}
-                      r="5"
-                      fill="#fbbf24"
-                      className="pointer-events-none"
-                    />
-                    <circle
-                      cx={position.includes('west') ? 15 : 79}
-                      cy={position.includes('north') ? 34 : 148}
-                      r="5"
-                      fill="#f59e0b"
-                      className="pointer-events-none"
-                    />
+                    {ratingSources.rt_critic && badgePositions.rt_critic && (
+                      <g
+                        className="cursor-move"
+                        onMouseDown={(e) => handleBadgeMouseDown(e, 'rt_critic')}
+                      >
+                        <rect
+                          x={(badgePositions.rt_critic.x / 100) * 120}
+                          y={(badgePositions.rt_critic.y / 100) * 168}
+                          width="14"
+                          height="20"
+                          fill="#ef4444"
+                          fillOpacity="0.9"
+                          rx="2"
+                        />
+                        <text
+                          x={(badgePositions.rt_critic.x / 100) * 120 + 7}
+                          y={(badgePositions.rt_critic.y / 100) * 168 + 12}
+                          fontSize="8"
+                          fill="#fff"
+                          textAnchor="middle"
+                          className="pointer-events-none select-none"
+                        >
+                          C
+                        </text>
+                      </g>
+                    )}
+
+                    {ratingSources.rt_audience && badgePositions.rt_audience && (
+                      <g
+                        className="cursor-move"
+                        onMouseDown={(e) => handleBadgeMouseDown(e, 'rt_audience')}
+                      >
+                        <rect
+                          x={(badgePositions.rt_audience.x / 100) * 120}
+                          y={(badgePositions.rt_audience.y / 100) * 168}
+                          width="14"
+                          height="20"
+                          fill="#8b5cf6"
+                          fillOpacity="0.9"
+                          rx="2"
+                        />
+                        <text
+                          x={(badgePositions.rt_audience.x / 100) * 120 + 7}
+                          y={(badgePositions.rt_audience.y / 100) * 168 + 12}
+                          fontSize="8"
+                          fill="#fff"
+                          textAnchor="middle"
+                          className="pointer-events-none select-none"
+                        >
+                          A
+                        </text>
+                      </g>
+                    )}
                   </svg>
                 </div>
 
                 {/* Instructions */}
-                <div className="flex-1 text-sm text-gray-400">
-                  <p className="mb-2">
-                    <span className="text-blue-400 font-medium">💡 Click or drag</span> the badge to position it
+                <div className="flex-1 text-sm text-gray-400 space-y-2">
+                  <p>
+                    <span className="text-blue-400 font-medium">💡 Drag badges</span> to position independently
                   </p>
-                  <p className="text-xs">
-                    Current: <span className="text-white font-medium">
-                      {position === 'northwest' && '↖ Top Left'}
-                      {position === 'northeast' && '↗ Top Right'}
-                      {position === 'southwest' && '↙ Bottom Left'}
-                      {position === 'southeast' && '↘ Bottom Right'}
-                    </span>
+                  <div className="text-xs space-y-1">
+                    <p><span className="inline-block w-3 h-3 bg-green-500 rounded mr-1"></span> <strong>T</strong> = TMDB ({badgePositions.tmdb?.x}%, {badgePositions.tmdb?.y}%)</p>
+                    <p><span className="inline-block w-3 h-3 bg-yellow-500 rounded mr-1"></span> <strong>I</strong> = IMDb ({badgePositions.imdb?.x}%, {badgePositions.imdb?.y}%)</p>
+                    <p><span className="inline-block w-3 h-3 bg-red-500 rounded mr-1"></span> <strong>C</strong> = RT Critic ({badgePositions.rt_critic?.x}%, {badgePositions.rt_critic?.y}%)</p>
+                    <p><span className="inline-block w-3 h-3 bg-purple-500 rounded mr-1"></span> <strong>A</strong> = RT Audience ({badgePositions.rt_audience?.x}%, {badgePositions.rt_audience?.y}%)</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Toggle checkboxes below to enable/disable each badge
                   </p>
                 </div>
               </div>
