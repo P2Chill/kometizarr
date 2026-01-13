@@ -264,13 +264,13 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
         <h2 className="text-xl font-semibold mb-4">Processing Options</h2>
         <div className="space-y-4">
-          {/* Position - 4 Draggable Badges */}
+          {/* Position & Styling - Side by Side Layout */}
           <div>
-            <label className="block text-sm font-medium mb-2">Badge Positions</label>
+            <label className="block text-sm font-medium mb-2">Badge Positions & Styling</label>
             <div className="bg-gray-900 rounded-lg p-4">
-              <div className="flex items-start gap-4">
-                {/* Draggable Poster Preview */}
-                <div className="relative">
+              <div className="flex items-start gap-6">
+                {/* LEFT: Draggable Poster Preview */}
+                <div className="flex-shrink-0">
                   <svg
                     viewBox="0 0 120 168"
                     className="w-48 h-auto select-none"
@@ -281,132 +281,223 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                     {/* Poster Background */}
                     <rect x="0" y="0" width="120" height="168" fill="#1f2937" stroke="#4b5563" strokeWidth="2" rx="3" />
 
-                    {/* Individual Badges - only show enabled ones */}
-                    {ratingSources.tmdb && badgePositions.tmdb && (
-                      <g
-                        className="cursor-move"
-                        onMouseDown={(e) => handleBadgeMouseDown(e, 'tmdb')}
-                      >
-                        <rect
-                          x={(badgePositions.tmdb.x / 100) * 120}
-                          y={(badgePositions.tmdb.y / 100) * 168}
-                          width="14"
-                          height="20"
-                          fill="#10b981"
-                          fillOpacity="0.9"
-                          rx="2"
-                        />
-                        <text
-                          x={(badgePositions.tmdb.x / 100) * 120 + 7}
-                          y={(badgePositions.tmdb.y / 100) * 168 + 12}
-                          fontSize="8"
-                          fill="#fff"
-                          textAnchor="middle"
-                          className="pointer-events-none select-none"
-                        >
-                          T
-                        </text>
-                      </g>
-                    )}
+                    {/* Individual Badges - dynamically sized and styled */}
+                    {(() => {
+                      // Calculate badge dimensions based on style settings
+                      const badgeSizePercent = badgeStyle.individual_badge_size || 12
+                      const badgeWidth = (badgeSizePercent / 100) * 120  // Scale to SVG viewBox
+                      const badgeHeight = badgeWidth * 1.4  // 1.4 aspect ratio
+                      const fontSize = (badgeWidth / 14) * 8  // Scale font with badge size
+                      const opacity = (badgeStyle.background_opacity || 128) / 255
 
-                    {ratingSources.imdb && badgePositions.imdb && (
-                      <g
-                        className="cursor-move"
-                        onMouseDown={(e) => handleBadgeMouseDown(e, 'imdb')}
-                      >
-                        <rect
-                          x={(badgePositions.imdb.x / 100) * 120}
-                          y={(badgePositions.imdb.y / 100) * 168}
-                          width="14"
-                          height="20"
-                          fill="#f59e0b"
-                          fillOpacity="0.9"
-                          rx="2"
-                        />
-                        <text
-                          x={(badgePositions.imdb.x / 100) * 120 + 7}
-                          y={(badgePositions.imdb.y / 100) * 168 + 12}
-                          fontSize="8"
-                          fill="#000"
-                          textAnchor="middle"
-                          fontWeight="bold"
-                          className="pointer-events-none select-none"
-                        >
-                          I
-                        </text>
-                      </g>
-                    )}
+                      return (
+                        <>
+                          {ratingSources.tmdb && badgePositions.tmdb && (
+                            <g
+                              className="cursor-move"
+                              onMouseDown={(e) => handleBadgeMouseDown(e, 'tmdb')}
+                            >
+                              <rect
+                                x={(badgePositions.tmdb.x / 100) * 120}
+                                y={(badgePositions.tmdb.y / 100) * 168}
+                                width={badgeWidth}
+                                height={badgeHeight}
+                                fill="#000"
+                                fillOpacity={opacity}
+                                rx="2"
+                              />
+                              <text
+                                x={(badgePositions.tmdb.x / 100) * 120 + badgeWidth / 2}
+                                y={(badgePositions.tmdb.y / 100) * 168 + badgeHeight / 2}
+                                fontSize={fontSize}
+                                fill={badgeStyle.rating_color || '#FFD700'}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fontWeight="bold"
+                                className="pointer-events-none select-none"
+                              >
+                                T
+                              </text>
+                            </g>
+                          )}
 
-                    {ratingSources.rt_critic && badgePositions.rt_critic && (
-                      <g
-                        className="cursor-move"
-                        onMouseDown={(e) => handleBadgeMouseDown(e, 'rt_critic')}
-                      >
-                        <rect
-                          x={(badgePositions.rt_critic.x / 100) * 120}
-                          y={(badgePositions.rt_critic.y / 100) * 168}
-                          width="14"
-                          height="20"
-                          fill="#ef4444"
-                          fillOpacity="0.9"
-                          rx="2"
-                        />
-                        <text
-                          x={(badgePositions.rt_critic.x / 100) * 120 + 7}
-                          y={(badgePositions.rt_critic.y / 100) * 168 + 12}
-                          fontSize="8"
-                          fill="#fff"
-                          textAnchor="middle"
-                          className="pointer-events-none select-none"
-                        >
-                          C
-                        </text>
-                      </g>
-                    )}
+                          {ratingSources.imdb && badgePositions.imdb && (
+                            <g
+                              className="cursor-move"
+                              onMouseDown={(e) => handleBadgeMouseDown(e, 'imdb')}
+                            >
+                              <rect
+                                x={(badgePositions.imdb.x / 100) * 120}
+                                y={(badgePositions.imdb.y / 100) * 168}
+                                width={badgeWidth}
+                                height={badgeHeight}
+                                fill="#000"
+                                fillOpacity={opacity}
+                                rx="2"
+                              />
+                              <text
+                                x={(badgePositions.imdb.x / 100) * 120 + badgeWidth / 2}
+                                y={(badgePositions.imdb.y / 100) * 168 + badgeHeight / 2}
+                                fontSize={fontSize}
+                                fill={badgeStyle.rating_color || '#FFD700'}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fontWeight="bold"
+                                className="pointer-events-none select-none"
+                              >
+                                I
+                              </text>
+                            </g>
+                          )}
 
-                    {ratingSources.rt_audience && badgePositions.rt_audience && (
-                      <g
-                        className="cursor-move"
-                        onMouseDown={(e) => handleBadgeMouseDown(e, 'rt_audience')}
-                      >
-                        <rect
-                          x={(badgePositions.rt_audience.x / 100) * 120}
-                          y={(badgePositions.rt_audience.y / 100) * 168}
-                          width="14"
-                          height="20"
-                          fill="#8b5cf6"
-                          fillOpacity="0.9"
-                          rx="2"
-                        />
-                        <text
-                          x={(badgePositions.rt_audience.x / 100) * 120 + 7}
-                          y={(badgePositions.rt_audience.y / 100) * 168 + 12}
-                          fontSize="8"
-                          fill="#fff"
-                          textAnchor="middle"
-                          className="pointer-events-none select-none"
-                        >
-                          A
-                        </text>
-                      </g>
-                    )}
+                          {ratingSources.rt_critic && badgePositions.rt_critic && (
+                            <g
+                              className="cursor-move"
+                              onMouseDown={(e) => handleBadgeMouseDown(e, 'rt_critic')}
+                            >
+                              <rect
+                                x={(badgePositions.rt_critic.x / 100) * 120}
+                                y={(badgePositions.rt_critic.y / 100) * 168}
+                                width={badgeWidth}
+                                height={badgeHeight}
+                                fill="#000"
+                                fillOpacity={opacity}
+                                rx="2"
+                              />
+                              <text
+                                x={(badgePositions.rt_critic.x / 100) * 120 + badgeWidth / 2}
+                                y={(badgePositions.rt_critic.y / 100) * 168 + badgeHeight / 2}
+                                fontSize={fontSize}
+                                fill={badgeStyle.rating_color || '#FFD700'}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fontWeight="bold"
+                                className="pointer-events-none select-none"
+                              >
+                                C
+                              </text>
+                            </g>
+                          )}
+
+                          {ratingSources.rt_audience && badgePositions.rt_audience && (
+                            <g
+                              className="cursor-move"
+                              onMouseDown={(e) => handleBadgeMouseDown(e, 'rt_audience')}
+                            >
+                              <rect
+                                x={(badgePositions.rt_audience.x / 100) * 120}
+                                y={(badgePositions.rt_audience.y / 100) * 168}
+                                width={badgeWidth}
+                                height={badgeHeight}
+                                fill="#000"
+                                fillOpacity={opacity}
+                                rx="2"
+                              />
+                              <text
+                                x={(badgePositions.rt_audience.x / 100) * 120 + badgeWidth / 2}
+                                y={(badgePositions.rt_audience.y / 100) * 168 + badgeHeight / 2}
+                                fontSize={fontSize}
+                                fill={badgeStyle.rating_color || '#FFD700'}
+                                textAnchor="middle"
+                                dominantBaseline="middle"
+                                fontWeight="bold"
+                                className="pointer-events-none select-none"
+                              >
+                                A
+                              </text>
+                            </g>
+                          )}
+                        </>
+                      )
+                    })()}
                   </svg>
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 Drag badges to position
+                  </p>
                 </div>
 
-                {/* Instructions */}
-                <div className="flex-1 text-sm text-gray-400 space-y-2">
-                  <p>
-                    <span className="text-blue-400 font-medium">💡 Drag badges</span> to position independently
-                  </p>
-                  <div className="text-xs space-y-1">
-                    <p><span className="inline-block w-3 h-3 bg-green-500 rounded mr-1"></span> <strong>T</strong> = TMDB ({badgePositions.tmdb?.x}%, {badgePositions.tmdb?.y}%)</p>
-                    <p><span className="inline-block w-3 h-3 bg-yellow-500 rounded mr-1"></span> <strong>I</strong> = IMDb ({badgePositions.imdb?.x}%, {badgePositions.imdb?.y}%)</p>
-                    <p><span className="inline-block w-3 h-3 bg-red-500 rounded mr-1"></span> <strong>C</strong> = RT Critic ({badgePositions.rt_critic?.x}%, {badgePositions.rt_critic?.y}%)</p>
-                    <p><span className="inline-block w-3 h-3 bg-purple-500 rounded mr-1"></span> <strong>A</strong> = RT Audience ({badgePositions.rt_audience?.x}%, {badgePositions.rt_audience?.y}%)</p>
+                {/* RIGHT: Styling Controls */}
+                <div className="flex-1 space-y-3">
+                  {/* Badge Size */}
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">
+                      Badge Size: {badgeStyle.individual_badge_size}%
+                    </label>
+                    <input
+                      type="range"
+                      min="8"
+                      max="20"
+                      step="1"
+                      value={badgeStyle.individual_badge_size}
+                      onChange={(e) => updateBadgeStyle('individual_badge_size', parseInt(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Toggle checkboxes below to enable/disable each badge
-                  </p>
+
+                  {/* Font Size */}
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">
+                      Font Size: {badgeStyle.font_size_multiplier.toFixed(1)}x
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      value={badgeStyle.font_size_multiplier}
+                      onChange={(e) => updateBadgeStyle('font_size_multiplier', parseFloat(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+
+                  {/* Rating Color */}
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">
+                      Rating Color
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={badgeStyle.rating_color}
+                        onChange={(e) => updateBadgeStyle('rating_color', e.target.value)}
+                        className="w-10 h-8 rounded border border-gray-700 bg-gray-800 cursor-pointer"
+                      />
+                      <span className="text-xs text-gray-400 font-mono">{badgeStyle.rating_color}</span>
+                    </div>
+                  </div>
+
+                  {/* Background Opacity */}
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">
+                      Background: {Math.round((badgeStyle.background_opacity / 255) * 100)}%
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="255"
+                      step="5"
+                      value={badgeStyle.background_opacity}
+                      onChange={(e) => updateBadgeStyle('background_opacity', parseInt(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+
+                  {/* Reset Button */}
+                  <button
+                    onClick={() => {
+                      const defaults = {
+                        individual_badge_size: 12,
+                        font_size_multiplier: 1.0,
+                        rating_color: '#FFD700',
+                        background_opacity: 128
+                      }
+                      setBadgeStyle(defaults)
+                      localStorage.setItem('kometizarr_badge_style', JSON.stringify(defaults))
+                    }}
+                    className="w-full text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 transition"
+                  >
+                    ↺ Reset Styling
+                  </button>
                 </div>
               </div>
             </div>
@@ -489,104 +580,6 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                 ⚠️ At least one rating source must be selected
               </div>
             )}
-          </div>
-
-          {/* Badge Styling Options */}
-          <div>
-            <label className="block text-sm font-medium mb-3">Badge Styling (Optional)</label>
-            <div className="space-y-4 bg-gray-900 rounded-lg p-4">
-              {/* Individual Badge Size */}
-              <div>
-                <label className="text-xs text-gray-400 block mb-2">
-                  Badge Size: {badgeStyle.individual_badge_size}% of poster width (per badge)
-                </label>
-                <input
-                  type="range"
-                  min="8"
-                  max="20"
-                  step="1"
-                  value={badgeStyle.individual_badge_size}
-                  onChange={(e) => updateBadgeStyle('individual_badge_size', parseInt(e.target.value))}
-                  className="w-full accent-blue-500"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Tiny</span>
-                  <span>Default (12%)</span>
-                  <span>Large</span>
-                </div>
-              </div>
-
-              {/* Font Size */}
-              <div>
-                <label className="text-xs text-gray-400 block mb-2">
-                  Font Size: {badgeStyle.font_size_multiplier.toFixed(1)}x
-                </label>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="2.0"
-                  step="0.1"
-                  value={badgeStyle.font_size_multiplier}
-                  onChange={(e) => updateBadgeStyle('font_size_multiplier', parseFloat(e.target.value))}
-                  className="w-full accent-blue-500"
-                />
-              </div>
-
-              {/* Rating Color */}
-              <div>
-                <label className="text-xs text-gray-400 block mb-2">
-                  Rating Text Color
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={badgeStyle.rating_color}
-                    onChange={(e) => updateBadgeStyle('rating_color', e.target.value)}
-                    className="w-12 h-10 rounded border border-gray-700 bg-gray-800 cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-300 font-mono">{badgeStyle.rating_color}</span>
-                  <button
-                    onClick={() => updateBadgeStyle('rating_color', '#FFD700')}
-                    className="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700"
-                  >
-                    Reset to Gold
-                  </button>
-                </div>
-              </div>
-
-              {/* Background Opacity */}
-              <div>
-                <label className="text-xs text-gray-400 block mb-2">
-                  Background Opacity: {Math.round((badgeStyle.background_opacity / 255) * 100)}%
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="255"
-                  step="5"
-                  value={badgeStyle.background_opacity}
-                  onChange={(e) => updateBadgeStyle('background_opacity', parseInt(e.target.value))}
-                  className="w-full accent-blue-500"
-                />
-              </div>
-
-              {/* Reset Button */}
-              <button
-                onClick={() => {
-                  const defaults = {
-                    badge_width_percent: 35,
-                    font_size_multiplier: 1.0,
-                    rating_color: '#FFD700',
-                    background_opacity: 128
-                  }
-                  setBadgeStyle(defaults)
-                  localStorage.setItem('kometizarr_badge_style', JSON.stringify(defaults))
-                }}
-                className="w-full text-xs px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 transition"
-              >
-                ↺ Reset All to Defaults
-              </button>
-            </div>
           </div>
 
           {/* Action Buttons */}
