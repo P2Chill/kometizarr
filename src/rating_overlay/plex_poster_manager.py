@@ -68,9 +68,10 @@ class PlexPosterManager:
         # Initialize components
         self.backup_manager = PosterBackupManager(backup_dir)
         self.rating_fetcher = RatingFetcher(tmdb_api_key, omdb_api_key, mdblist_api_key)
-        self.badge_generator = BadgeGenerator(style=badge_style)
+        # BadgeGenerator is legacy (old unified badge), badge_style is now a dict for MultiRatingBadge
+        self.badge_generator = BadgeGenerator(style='default')
         self.overlay_composer = OverlayComposer(self.badge_generator)
-        self.multi_rating_badge = MultiRatingBadge()  # New multi-source badge
+        self.multi_rating_badge = MultiRatingBadge()  # New multi-source badge (uses badge_style dict)
 
         # Temp directory for processing
         self.temp_dir = Path('/tmp/kometizarr_temp')

@@ -429,10 +429,12 @@ async def process_library_background(request: ProcessRequest):
         await broadcast_progress()  # Final update
 
     except Exception as e:
+        import traceback
         processing_state["is_processing"] = False
         processing_state["stop_requested"] = False
         processing_state["error"] = str(e)
         logger.error(f"❌ Processing failed: {request.library_name} - Error: {e}")
+        logger.error(traceback.format_exc())  # Print full traceback
         await broadcast_progress()
 
 
