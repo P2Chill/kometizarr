@@ -14,6 +14,12 @@ Beautiful web interface for managing Plex rating overlays with real-time progres
 - ⚙️ **Easy Configuration** - Select libraries and options with a clean UI
 - 🚀 **Fast & Responsive** - Built with React and FastAPI
 - 🐳 **Docker Ready** - Deploy with one command
+- 🎯 **4-Badge Independent Positioning** (NEW v1.1.0) - Position each rating badge separately
+  - Visual alignment guides with live grid overlay
+  - Per-badge customization (font, color, opacity, size)
+  - 11 font options (DejaVu Sans/Serif/Mono in Bold/Regular/Italic)
+  - Real-time preview with drag-and-drop SVG positioning
+  - Preferences saved in localStorage
 
 ## Quick Start
 
@@ -212,13 +218,17 @@ networks:
 
 ## Roadmap
 
+### Completed ✅
+- [x] **Badge Preview** (v1.1.0) - Real-time preview with drag-and-drop positioning
+- [x] **4-Badge Independent Positioning** (v1.1.0) - Position each rating badge separately
+
+### Planned 🚧
 - [ ] **Authentication** - User login and session management
 - [ ] **Collection Manager** - Visual collection creation/editing
-- [ ] **Restore Function** - One-click restore original posters
+- [ ] **Restore Function** - One-click restore original posters from Web UI
 - [ ] **Scheduling** - Auto-process new content
 - [ ] **Statistics Dashboard** - Charts and analytics
 - [ ] **Per-Item Controls** - Process/skip individual items
-- [ ] **Badge Preview** - See overlay before applying
 
 ## Contributing
 

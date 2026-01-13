@@ -9,11 +9,16 @@ Kometizarr automatically adds gorgeous multi-source rating badges to your Plex m
 ## ✨ Features
 
 ### 🎯 Multi-Source Rating Overlays
-- **4 rating sources in one badge:**
+- **4 independent rating badges** (NEW in v1.1.0):
   - 🎬 **TMDB** ratings (movies and TV shows)
   - ⭐ **IMDb** ratings (via OMDb API)
   - 🍅 **Rotten Tomatoes Critic** scores (via MDBList)
   - 🍿 **Rotten Tomatoes Audience** scores (via MDBList)
+- **NEW: Independent positioning** - Place each badge separately anywhere on the poster
+- **NEW: Visual alignment guides** - Live grid overlay for precise badge placement
+- **NEW: 11 font options** - Sans/Serif/Mono in Bold, Regular, and Italic variants
+- **NEW: Per-badge customization** - Font, color, opacity, and size per badge
+- **Backward compatible** - Legacy unified badge still supported
 
 ### 🎨 Beautiful Design
 - **Dynamic RT logos:** Fresh tomato/rotten splat for critic scores, fresh/spilled popcorn for audience scores
@@ -117,7 +122,7 @@ Open `http://localhost:3001` - done in 5 seconds! 🎉
 
 **Alternative registries:**
 - **Docker Hub:** Replace `ghcr.io/p2chill/` with `p2chill/`
-- **Version pinning:** Replace `:latest` with `:v1.0.7` for stable releases
+- **Version pinning:** Replace `:latest` with `:v1.1.0` for stable releases
 
 #### Option B: Clone Repository (For Development)
 
@@ -465,6 +470,12 @@ manager.process_library()  # Preview without applying
 - [x] **10-second countdown** - Completion screen with countdown before returning to dashboard
   - Prevents accidental navigation away from completion stats
   - Skip button to return immediately
+- [x] **4-Badge Independent Positioning** (v1.1.0) - Each rating source can be positioned separately
+  - Visual alignment guides with live grid overlay
+  - Per-badge customization (font, color, opacity, size)
+  - 11 font choices (DejaVu Sans/Serif/Mono variants)
+  - Real-time preview with drag-and-drop positioning
+  - Backward compatible with legacy unified badge mode
 
 ### Planned 🚧
 - [ ] **Multi-server support** - Add/remove Plex servers from Web UI
