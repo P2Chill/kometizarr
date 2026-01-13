@@ -180,19 +180,74 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
         <h2 className="text-xl font-semibold mb-4">Processing Options</h2>
         <div className="space-y-4">
-          {/* Position */}
+          {/* Position - Visual Selector */}
           <div>
             <label className="block text-sm font-medium mb-2">Badge Position</label>
-            <select
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2"
-            >
-              <option value="northwest">Northwest (Top Left)</option>
-              <option value="northeast">Northeast (Top Right)</option>
-              <option value="southwest">Southwest (Bottom Left)</option>
-              <option value="southeast">Southeast (Bottom Right)</option>
-            </select>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: 'northwest', label: 'Top Left', badge: { x: '10', y: '10' } },
+                { value: 'northeast', label: 'Top Right', badge: { x: '110', y: '10' } },
+                { value: 'southwest', label: 'Bottom Left', badge: { x: '10', y: '130' } },
+                { value: 'southeast', label: 'Bottom Right', badge: { x: '110', y: '130' } }
+              ].map(({ value, label, badge }) => (
+                <button
+                  key={value}
+                  onClick={() => setPosition(value)}
+                  className={`relative p-3 rounded-lg border-2 transition ${
+                    position === value
+                      ? 'border-blue-500 bg-blue-900/30'
+                      : 'border-gray-700 hover:border-gray-600 bg-gray-900'
+                  }`}
+                >
+                  {/* Poster Preview SVG */}
+                  <svg viewBox="0 0 200 280" className="w-full h-auto mb-2">
+                    {/* Poster Background */}
+                    <rect x="0" y="0" width="200" height="280" fill="#1f2937" stroke="#4b5563" strokeWidth="2" rx="4" />
+
+                    {/* Grid lines for visual interest */}
+                    <line x1="0" y1="93" x2="200" y2="93" stroke="#374151" strokeWidth="1" opacity="0.3" />
+                    <line x1="0" y1="186" x2="200" y2="186" stroke="#374151" strokeWidth="1" opacity="0.3" />
+
+                    {/* Badge Rectangle */}
+                    <rect
+                      x={badge.x}
+                      y={badge.y}
+                      width="80"
+                      height="60"
+                      fill="#3b82f6"
+                      fillOpacity="0.8"
+                      rx="4"
+                    />
+
+                    {/* Badge Icon (simplified rating display) */}
+                    <circle cx={parseInt(badge.x) + 15} cy={parseInt(badge.y) + 20} r="8" fill="#fbbf24" />
+                    <text
+                      x={parseInt(badge.x) + 35}
+                      y={parseInt(badge.y) + 25}
+                      fill="white"
+                      fontSize="14"
+                      fontWeight="bold"
+                    >
+                      8.5
+                    </text>
+
+                    <circle cx={parseInt(badge.x) + 15} cy={parseInt(badge.y) + 43} r="8" fill="#f59e0b" />
+                    <text
+                      x={parseInt(badge.x) + 35}
+                      y={parseInt(badge.y) + 48}
+                      fill="white"
+                      fontSize="14"
+                      fontWeight="bold"
+                    >
+                      7.9
+                    </text>
+                  </svg>
+
+                  {/* Label */}
+                  <div className="text-sm text-center font-medium">{label}</div>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Force */}
