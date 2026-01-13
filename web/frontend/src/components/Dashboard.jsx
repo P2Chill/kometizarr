@@ -7,6 +7,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
   const [loading, setLoading] = useState(true)
   const [position, setPosition] = useState('northwest')
   const [force, setForce] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const [ratingSources, setRatingSources] = useState(() => {
     // Load from localStorage or default to all enabled
     const saved = localStorage.getItem('kometizarr_rating_sources')
@@ -78,6 +79,27 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     const updated = { ...badgeStyle, [key]: value }
     setBadgeStyle(updated)
     localStorage.setItem('kometizarr_badge_style', JSON.stringify(updated))
+  }
+
+  const handlePosterClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    // Determine which quadrant was clicked
+    const isLeft = x < rect.width / 2
+    const isTop = y < rect.height / 2
+
+    // Set position based on quadrant
+    if (isTop && isLeft) {
+      setPosition('northwest')
+    } else if (isTop && !isLeft) {
+      setPosition('northeast')
+    } else if (!isTop && isLeft) {
+      setPosition('southwest')
+    } else {
+      setPosition('southeast')
+    }
   }
 
   const startProcessing = async () => {
@@ -197,67 +219,73 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
         <h2 className="text-xl font-semibold mb-4">Processing Options</h2>
         <div className="space-y-4">
-          {/* Position - Compact Visual Selector */}
+          {/* Position - Draggable Visual Selector */}
           <div>
             <label className="block text-sm font-medium mb-2">Badge Position</label>
-            <div className="flex items-center gap-4 bg-gray-900 rounded-lg p-4">
-              {/* Preview Poster */}
-              <div className="relative">
-                <svg viewBox="0 0 120 168" className="w-32 h-auto">
-                  {/* Poster Background */}
-                  <rect x="0" y="0" width="120" height="168" fill="#1f2937" stroke="#4b5563" strokeWidth="2" rx="3" />
-
-                  {/* Grid lines */}
-                  <line x1="0" y1="56" x2="120" y2="56" stroke="#374151" strokeWidth="1" opacity="0.3" />
-                  <line x1="0" y1="112" x2="120" y2="112" stroke="#374151" strokeWidth="1" opacity="0.3" />
-
-                  {/* Badge Rectangle - positioned based on selection */}
-                  <rect
-                    x={position.includes('west') ? 6 : 70}
-                    y={position.includes('north') ? 6 : 120}
-                    width="44"
-                    height="40"
-                    fill="#3b82f6"
-                    fillOpacity="0.9"
-                    rx="3"
-                  />
-
-                  {/* Rating indicators on badge */}
-                  <circle
-                    cx={position.includes('west') ? 15 : 79}
-                    cy={position.includes('north') ? 18 : 132}
-                    r="5"
-                    fill="#fbbf24"
-                  />
-                  <circle
-                    cx={position.includes('west') ? 15 : 79}
-                    cy={position.includes('north') ? 34 : 148}
-                    r="5"
-                    fill="#f59e0b"
-                  />
-                </svg>
-              </div>
-
-              {/* Position Buttons Grid */}
-              <div className="grid grid-cols-2 gap-2 flex-1">
-                {[
-                  { value: 'northwest', label: '↖ Top Left' },
-                  { value: 'northeast', label: '↗ Top Right' },
-                  { value: 'southwest', label: '↙ Bottom Left' },
-                  { value: 'southeast', label: '↘ Bottom Right' }
-                ].map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => setPosition(value)}
-                    className={`px-3 py-2 text-sm rounded border-2 transition ${
-                      position === value
-                        ? 'border-blue-500 bg-blue-600 text-white font-medium'
-                        : 'border-gray-700 bg-gray-800 hover:border-gray-600 text-gray-300'
-                    }`}
+            <div className="bg-gray-900 rounded-lg p-4">
+              <div className="flex items-start gap-4">
+                {/* Draggable Poster Preview */}
+                <div className="relative">
+                  <svg
+                    viewBox="0 0 120 168"
+                    className="w-40 h-auto cursor-pointer"
+                    onClick={handlePosterClick}
+                    onMouseMove={(e) => isDragging && handlePosterClick(e)}
+                    onMouseDown={() => setIsDragging(true)}
+                    onMouseUp={() => setIsDragging(false)}
+                    onMouseLeave={() => setIsDragging(false)}
                   >
-                    {label}
-                  </button>
-                ))}
+                    {/* Poster Background */}
+                    <rect x="0" y="0" width="120" height="168" fill="#1f2937" stroke="#4b5563" strokeWidth="2" rx="3" />
+
+                    {/* Quadrant divider lines (subtle) */}
+                    <line x1="60" y1="0" x2="60" y2="168" stroke="#374151" strokeWidth="1" strokeDasharray="2,2" opacity="0.3" />
+                    <line x1="0" y1="84" x2="120" y2="84" stroke="#374151" strokeWidth="1" strokeDasharray="2,2" opacity="0.3" />
+
+                    {/* Badge Rectangle - positioned based on selection */}
+                    <rect
+                      x={position.includes('west') ? 6 : 70}
+                      y={position.includes('north') ? 6 : 120}
+                      width="44"
+                      height="40"
+                      fill="#3b82f6"
+                      fillOpacity="0.9"
+                      rx="3"
+                      className="pointer-events-none"
+                    />
+
+                    {/* Rating indicators on badge */}
+                    <circle
+                      cx={position.includes('west') ? 15 : 79}
+                      cy={position.includes('north') ? 18 : 132}
+                      r="5"
+                      fill="#fbbf24"
+                      className="pointer-events-none"
+                    />
+                    <circle
+                      cx={position.includes('west') ? 15 : 79}
+                      cy={position.includes('north') ? 34 : 148}
+                      r="5"
+                      fill="#f59e0b"
+                      className="pointer-events-none"
+                    />
+                  </svg>
+                </div>
+
+                {/* Instructions */}
+                <div className="flex-1 text-sm text-gray-400">
+                  <p className="mb-2">
+                    <span className="text-blue-400 font-medium">💡 Click or drag</span> the badge to position it
+                  </p>
+                  <p className="text-xs">
+                    Current: <span className="text-white font-medium">
+                      {position === 'northwest' && '↖ Top Left'}
+                      {position === 'northeast' && '↗ Top Right'}
+                      {position === 'southwest' && '↙ Bottom Left'}
+                      {position === 'southeast' && '↘ Bottom Right'}
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
