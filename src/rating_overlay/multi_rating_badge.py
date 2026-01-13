@@ -119,9 +119,9 @@ class MultiRatingBadge:
         """
         poster_width, poster_height = poster_size
 
-        # Badge size scales with poster width (45% of poster width - middle ground)
-        # This ensures it fits all poster sizes consistently
-        badge_width = int(poster_width * 0.45)
+        # Badge size scales with poster width (35% of poster width - cleaner, more compact)
+        # Reduced from 45% after removing text labels for a sleeker look
+        badge_width = int(poster_width * 0.35)
 
         # Calculate height based on number of ratings
         # Scale row height proportionally with badge width
@@ -291,38 +291,26 @@ class MultiRatingBadge:
                 anchor="lm"
             )
         else:
-            # TMDB and IMDb use x.x/10 format
+            # TMDB and IMDb - just show the number (cleaner design)
             rating_text = f"{rating:.1f}"
-            max_text = "/10"
 
-            # Position at right edge (align with RT percentages more or less)
+            # Position at right edge (align with RT percentages)
             rating_x = badge_width - x_padding
             rating_y = y_offset + (row_height // 2)
 
-            # Get text size for alignment
+            # Get text size for right alignment
             rating_bbox = draw.textbbox((0, 0), rating_text, font=font_large)
-            max_bbox = draw.textbbox((0, 0), max_text, font=font_small)
+            text_width = rating_bbox[2] - rating_bbox[0]
 
-            total_width = (rating_bbox[2] - rating_bbox[0]) + (max_bbox[2] - max_bbox[0]) + int(scale_width * 0.02)
-
-            # Draw rating number with shadow (GOLD text)
+            # Draw rating number with shadow (GOLD text) - right aligned
             self._draw_text_with_shadow(
                 draw,
-                (rating_x - total_width, rating_y),
+                (rating_x - text_width, rating_y),
                 rating_text,
                 font_large,
                 (255, 215, 0, 255),  # Gold color
-                shadow_offset=shadow_large
-            )
-
-            # Draw /10 with shadow (white)
-            self._draw_text_with_shadow(
-                draw,
-                (rating_x - (max_bbox[2] - max_bbox[0]), rating_y + int(scale_width * 0.02)),
-                max_text,
-                font_small,
-                (255, 255, 255, 255),  # White
-                shadow_offset=shadow_small
+                shadow_offset=shadow_large,
+                anchor="lm"
             )
 
     def apply_to_poster(
