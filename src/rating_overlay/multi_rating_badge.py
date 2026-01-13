@@ -13,6 +13,15 @@ from pathlib import Path
 class MultiRatingBadge:
     """Generate rating badges with multiple sources (TMDB, IMDb, RT)"""
 
+    # Font family to file path mapping
+    FONT_PATHS = {
+        'DejaVu Sans Bold': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        'DejaVu Sans': '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        'DejaVu Serif Bold': '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
+        'DejaVu Serif': '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+        'DejaVu Sans Mono Bold': '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf',
+    }
+
     def __init__(self, assets_dir: str = None):
         """
         Initialize multi-rating badge generator
@@ -157,10 +166,13 @@ class MultiRatingBadge:
         font_large_size = int(badge_width * 0.20 * font_multiplier)  # 20% of badge width * multiplier
         font_small_size = int(badge_width * 0.10 * font_multiplier)  # 10% of badge width * multiplier
 
+        # Use custom font family if specified (unified badge mode)
+        font_family = style.get('font_family', 'DejaVu Sans Bold')
+        font_path = self.FONT_PATHS.get(font_family, self.FONT_PATHS['DejaVu Sans Bold'])
+
         try:
-            font_large = ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_large_size
-            )
+            font_large = ImageFont.truetype(font_path, font_large_size)
+            # Use regular for small text
             font_small = ImageFont.truetype(
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_small_size
             )
@@ -269,12 +281,14 @@ class MultiRatingBadge:
         number_section_top = logo_section_height
         number_section_height = badge_height - logo_section_height
 
-        # Load font
+        # Load font - use custom font family if specified
         font_size = int(badge_width * 0.35 * font_multiplier)  # 35% of badge width
+        font_family = style.get('font_family', 'DejaVu Sans Bold')
+        font_path = self.FONT_PATHS.get(font_family, self.FONT_PATHS['DejaVu Sans Bold'])
+
         try:
-            font_rating = ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size
-            )
+            font_rating = ImageFont.truetype(font_path, font_size)
+            # Use regular variant for percent symbol (always DejaVu Sans for consistency)
             font_percent = ImageFont.truetype(
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", int(font_size * 0.6)
             )

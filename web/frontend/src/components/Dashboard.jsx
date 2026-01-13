@@ -35,7 +35,8 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
       individual_badge_size: 12,  // Individual badge size (% of poster width)
       font_size_multiplier: 1.0,  // Multiplier for font sizes
       rating_color: '#FFD700',    // Gold color (default)
-      background_opacity: 128     // 0-255, default 128 (50%)
+      background_opacity: 128,    // 0-255, default 128 (50%)
+      font_family: 'DejaVu Sans Bold'  // Font family
     }
   })
 
@@ -421,17 +422,27 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                   {/* Badge Size */}
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">
-                      Badge Size: {badgeStyle.individual_badge_size}%
+                      Badge Size: {Math.round(((badgeStyle.individual_badge_size - 8) / (30 - 8)) * 100)}%
                     </label>
                     <input
                       type="range"
-                      min="8"
-                      max="20"
+                      min="0"
+                      max="100"
                       step="1"
-                      value={badgeStyle.individual_badge_size}
-                      onChange={(e) => updateBadgeStyle('individual_badge_size', parseInt(e.target.value))}
+                      value={Math.round(((badgeStyle.individual_badge_size - 8) / (30 - 8)) * 100)}
+                      onChange={(e) => {
+                        // Map 0-100 slider to 8-30% actual badge size
+                        const sliderValue = parseInt(e.target.value)
+                        const actualSize = 8 + (sliderValue / 100) * (30 - 8)
+                        updateBadgeStyle('individual_badge_size', Math.round(actualSize))
+                      }}
                       className="w-full accent-blue-500"
                     />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>Tiny (8%)</span>
+                      <span>Normal (12%)</span>
+                      <span>Huge (30%)</span>
+                    </div>
                   </div>
 
                   {/* Font Size */}
@@ -450,19 +461,40 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                     />
                   </div>
 
-                  {/* Rating Color */}
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">
-                      Rating Color
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={badgeStyle.rating_color}
-                        onChange={(e) => updateBadgeStyle('rating_color', e.target.value)}
-                        className="w-10 h-8 rounded border border-gray-700 bg-gray-800 cursor-pointer"
-                      />
-                      <span className="text-xs text-gray-400 font-mono">{badgeStyle.rating_color}</span>
+                  {/* Font and Color - Side by Side */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Font Family */}
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">
+                        Font
+                      </label>
+                      <select
+                        value={badgeStyle.font_family}
+                        onChange={(e) => updateBadgeStyle('font_family', e.target.value)}
+                        className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-white"
+                      >
+                        <option value="DejaVu Sans Bold">Bold</option>
+                        <option value="DejaVu Sans">Regular</option>
+                        <option value="DejaVu Serif Bold">Serif Bold</option>
+                        <option value="DejaVu Serif">Serif</option>
+                        <option value="DejaVu Sans Mono Bold">Mono</option>
+                      </select>
+                    </div>
+
+                    {/* Rating Color */}
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">
+                        Color
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={badgeStyle.rating_color}
+                          onChange={(e) => updateBadgeStyle('rating_color', e.target.value)}
+                          className="w-10 h-8 rounded border border-gray-700 bg-gray-800 cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-400 font-mono text-xs">{badgeStyle.rating_color}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -489,7 +521,8 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                         individual_badge_size: 12,
                         font_size_multiplier: 1.0,
                         rating_color: '#FFD700',
-                        background_opacity: 128
+                        background_opacity: 128,
+                        font_family: 'DejaVu Sans Bold'
                       }
                       setBadgeStyle(defaults)
                       localStorage.setItem('kometizarr_badge_style', JSON.stringify(defaults))
