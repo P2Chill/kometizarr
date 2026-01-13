@@ -562,18 +562,26 @@ class MultiRatingBadge:
 
             badge_width, badge_height = badge.size
 
-            # Calculate position - small offset from edges
-            offset_x = int(poster_width * 0.02)  # 2% from edges (close to edge)
-            offset_y = int(poster_height * 0.02)
+            # Calculate position - handle both string positions and dict coordinates
+            if isinstance(position, dict):
+                # Free positioning with percentage coordinates
+                x_percent = position.get('x', 2)
+                y_percent = position.get('y', 2)
+                badge_x = int((x_percent / 100) * poster_width)
+                badge_y = int((y_percent / 100) * poster_height)
+            else:
+                # Named corner positions (string)
+                offset_x = int(poster_width * 0.02)  # 2% from edges (close to edge)
+                offset_y = int(poster_height * 0.02)
 
-            positions = {
-                'northeast': (poster_width - badge_width - offset_x, offset_y),
-                'northwest': (offset_x, offset_y),
-                'southeast': (poster_width - badge_width - offset_x, poster_height - badge_height - offset_y),
-                'southwest': (offset_x, poster_height - badge_height - offset_y)
-            }
+                positions = {
+                    'northeast': (poster_width - badge_width - offset_x, offset_y),
+                    'northwest': (offset_x, offset_y),
+                    'southeast': (poster_width - badge_width - offset_x, poster_height - badge_height - offset_y),
+                    'southwest': (offset_x, poster_height - badge_height - offset_y)
+                }
 
-            badge_x, badge_y = positions.get(position, positions['northeast'])
+                badge_x, badge_y = positions.get(position, positions['northwest'])
 
             # Composite badge onto poster
             poster.paste(badge, (badge_x, badge_y), badge)
