@@ -125,7 +125,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
   const handleBadgeMouseDown = (e, badgeSource) => {
     e.stopPropagation()  // Prevent poster click
     setActiveDragBadge(badgeSource)
-    handlePosterDrag(e, badgeSource)  // Move immediately on click
+    // Don't move on initial click - only move when dragging (mousemove)
   }
 
   const handlePosterMouseMove = (e) => {
