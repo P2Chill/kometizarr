@@ -17,6 +17,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     }
   })
   const [activeDragBadge, setActiveDragBadge] = useState(null)  // Which badge is being dragged
+  const [alignmentGuides, setAlignmentGuides] = useState([])  // Visual alignment guides
   const [force, setForce] = useState(false)
   const [ratingSources, setRatingSources] = useState(() => {
     // Load from localStorage or default to all enabled
@@ -104,16 +105,79 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
 
     // Calculate position as percentage of poster dimensions (0-100)
     // Individual badges are small (~12% of poster width)
-    const badgeWidthPercent = 12
-    const badgeHeightPercent = 17  // 1.4x aspect ratio
+    const badgeWidthPercent = badgeStyle.individual_badge_size || 12
+    const badgeHeightPercent = badgeWidthPercent * 1.4  // 1.4x aspect ratio
 
     // Center badge on cursor
     let xPercent = (clickX / rect.width) * 100 - (badgeWidthPercent / 2)
     let yPercent = (clickY / rect.height) * 100 - (badgeHeightPercent / 2)
 
-    // Clamp to edges (2% minimum margin, 100% - badge size maximum)
-    xPercent = Math.max(2, Math.min(xPercent, 100 - badgeWidthPercent - 2))
-    yPercent = Math.max(2, Math.min(yPercent, 100 - badgeHeightPercent - 2))
+    // Detect alignment with other badges (before clamping)
+    const guides = []
+    const threshold = 2  // Snap within 2%
+    let alignedX = false
+    let alignedY = false
+
+    Object.keys(badgePositions).forEach(otherSource => {
+      if (otherSource === source || !ratingSources[otherSource]) return
+
+      const other = badgePositions[otherSource]
+      const otherRight = other.x + badgeWidthPercent
+      const otherBottom = other.y + badgeHeightPercent
+      const otherCenterX = other.x + badgeWidthPercent / 2
+      const otherCenterY = other.y + badgeHeightPercent / 2
+
+      const dragRight = xPercent + badgeWidthPercent
+      const dragBottom = yPercent + badgeHeightPercent
+      const dragCenterX = xPercent + badgeWidthPercent / 2
+      const dragCenterY = yPercent + badgeHeightPercent / 2
+
+      // Check vertical alignments (X-axis) - only snap if not already aligned
+      if (!alignedX) {
+        if (Math.abs(xPercent - other.x) < threshold) {
+          // Left edges align
+          xPercent = other.x
+          guides.push({ type: 'vertical', position: other.x })
+          alignedX = true
+        } else if (Math.abs(dragRight - otherRight) < threshold) {
+          // Right edges align
+          xPercent = otherRight - badgeWidthPercent
+          guides.push({ type: 'vertical', position: otherRight })
+          alignedX = true
+        } else if (Math.abs(dragCenterX - otherCenterX) < threshold) {
+          // Centers align
+          xPercent = otherCenterX - badgeWidthPercent / 2
+          guides.push({ type: 'vertical', position: otherCenterX })
+          alignedX = true
+        }
+      }
+
+      // Check horizontal alignments (Y-axis) - only snap if not already aligned
+      if (!alignedY) {
+        if (Math.abs(yPercent - other.y) < threshold) {
+          // Top edges align
+          yPercent = other.y
+          guides.push({ type: 'horizontal', position: other.y })
+          alignedY = true
+        } else if (Math.abs(dragBottom - otherBottom) < threshold) {
+          // Bottom edges align
+          yPercent = otherBottom - badgeHeightPercent
+          guides.push({ type: 'horizontal', position: otherBottom })
+          alignedY = true
+        } else if (Math.abs(dragCenterY - otherCenterY) < threshold) {
+          // Centers align
+          yPercent = otherCenterY - badgeHeightPercent / 2
+          guides.push({ type: 'horizontal', position: otherCenterY })
+          alignedY = true
+        }
+      }
+    })
+
+    // Clamp to edges AFTER alignment - simple 0-100% bounds (badges can overlap edges)
+    xPercent = Math.max(0, Math.min(xPercent, 100))
+    yPercent = Math.max(0, Math.min(yPercent, 100))
+
+    setAlignmentGuides(guides)
 
     const newPosition = { x: Math.round(xPercent), y: Math.round(yPercent) }
 
@@ -137,6 +201,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
 
   const handleMouseUp = () => {
     setActiveDragBadge(null)
+    setAlignmentGuides([])  // Clear alignment guides
   }
 
   const startProcessing = async () => {
@@ -291,6 +356,25 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                       const fontSize = (badgeWidth / 14) * 8  // Scale font with badge size
                       const opacity = (badgeStyle.background_opacity || 128) / 255
 
+                      // Map font family to CSS font-family for SVG
+                      const getFontFamily = (fontName) => {
+                        if (fontName.includes('Mono')) return 'monospace'
+                        if (fontName.includes('Serif')) return 'serif'
+                        return 'sans-serif'
+                      }
+
+                      const getFontStyle = (fontName) => {
+                        return fontName.includes('Oblique') || fontName.includes('Italic') ? 'italic' : 'normal'
+                      }
+
+                      const getFontWeight = (fontName) => {
+                        return fontName.includes('Bold') ? 'bold' : 'normal'
+                      }
+
+                      const fontFamily = getFontFamily(badgeStyle.font_family || 'DejaVu Sans Bold')
+                      const fontStyle = getFontStyle(badgeStyle.font_family || 'DejaVu Sans Bold')
+                      const fontWeight = getFontWeight(badgeStyle.font_family || 'DejaVu Sans Bold')
+
                       return (
                         <>
                           {ratingSources.tmdb && badgePositions.tmdb && (
@@ -314,7 +398,9 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                                 fill={badgeStyle.rating_color || '#FFD700'}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
-                                fontWeight="bold"
+                                fontFamily={fontFamily}
+                                fontStyle={fontStyle}
+                                fontWeight={fontWeight}
                                 className="pointer-events-none select-none"
                               >
                                 T
@@ -343,7 +429,9 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                                 fill={badgeStyle.rating_color || '#FFD700'}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
-                                fontWeight="bold"
+                                fontFamily={fontFamily}
+                                fontStyle={fontStyle}
+                                fontWeight={fontWeight}
                                 className="pointer-events-none select-none"
                               >
                                 I
@@ -372,7 +460,9 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                                 fill={badgeStyle.rating_color || '#FFD700'}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
-                                fontWeight="bold"
+                                fontFamily={fontFamily}
+                                fontStyle={fontStyle}
+                                fontWeight={fontWeight}
                                 className="pointer-events-none select-none"
                               >
                                 C
@@ -401,7 +491,9 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                                 fill={badgeStyle.rating_color || '#FFD700'}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
-                                fontWeight="bold"
+                                fontFamily={fontFamily}
+                                fontStyle={fontStyle}
+                                fontWeight={fontWeight}
                                 className="pointer-events-none select-none"
                               >
                                 A
@@ -411,10 +503,50 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                         </>
                       )
                     })()}
+
+                    {/* Alignment Guides */}
+                    {alignmentGuides.map((guide, index) => {
+                      if (guide.type === 'vertical') {
+                        // Vertical line (for X-axis alignment)
+                        const x = (guide.position / 100) * 120
+                        return (
+                          <line
+                            key={`guide-${index}`}
+                            x1={x}
+                            y1={0}
+                            x2={x}
+                            y2={168}
+                            stroke="#3b82f6"
+                            strokeWidth="1"
+                            strokeDasharray="4,4"
+                            className="pointer-events-none"
+                          />
+                        )
+                      } else {
+                        // Horizontal line (for Y-axis alignment)
+                        const y = (guide.position / 100) * 168
+                        return (
+                          <line
+                            key={`guide-${index}`}
+                            x1={0}
+                            y1={y}
+                            x2={120}
+                            y2={y}
+                            stroke="#3b82f6"
+                            strokeWidth="1"
+                            strokeDasharray="4,4"
+                            className="pointer-events-none"
+                          />
+                        )
+                      }
+                    })}
                   </svg>
-                  <p className="text-xs text-gray-500 mt-2">
-                    💡 Drag badges to position
-                  </p>
+                  <div className="text-xs text-gray-500 mt-2 space-y-1">
+                    <p className="font-medium">💡 Drag badges to position</p>
+                    <div className="text-gray-400 leading-relaxed">
+                      <span className="font-bold text-white">T</span>=<span className="font-bold">TMDB</span> • <span className="font-bold text-white">I</span>=<span className="font-bold">IMDb</span> • <span className="font-bold text-white">C</span>=<span className="font-bold">RT Critic</span> • <span className="font-bold text-white">A</span>=<span className="font-bold">RT Audience</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* RIGHT: Styling Controls */}
@@ -438,11 +570,6 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                       }}
                       className="w-full accent-blue-500"
                     />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>Tiny (8%)</span>
-                      <span>Normal (12%)</span>
-                      <span>Huge (30%)</span>
-                    </div>
                   </div>
 
                   {/* Font Size */}
@@ -473,11 +600,17 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                         onChange={(e) => updateBadgeStyle('font_family', e.target.value)}
                         className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm text-white"
                       >
-                        <option value="DejaVu Sans Bold">Bold</option>
-                        <option value="DejaVu Sans">Regular</option>
+                        <option value="DejaVu Sans Bold">Sans Bold (Default)</option>
+                        <option value="DejaVu Sans">Sans Regular</option>
+                        <option value="DejaVu Sans Bold Oblique">Sans Bold Italic</option>
+                        <option value="DejaVu Sans Oblique">Sans Italic</option>
                         <option value="DejaVu Serif Bold">Serif Bold</option>
-                        <option value="DejaVu Serif">Serif</option>
-                        <option value="DejaVu Sans Mono Bold">Mono</option>
+                        <option value="DejaVu Serif">Serif Regular</option>
+                        <option value="DejaVu Serif Bold Italic">Serif Bold Italic</option>
+                        <option value="DejaVu Serif Italic">Serif Italic</option>
+                        <option value="DejaVu Sans Mono Bold">Mono Bold</option>
+                        <option value="DejaVu Sans Mono">Mono Regular</option>
+                        <option value="DejaVu Sans Mono Oblique">Mono Italic</option>
                       </select>
                     </div>
 

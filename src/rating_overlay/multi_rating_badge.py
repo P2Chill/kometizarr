@@ -17,9 +17,15 @@ class MultiRatingBadge:
     FONT_PATHS = {
         'DejaVu Sans Bold': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
         'DejaVu Sans': '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        'DejaVu Sans Bold Oblique': '/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf',
+        'DejaVu Sans Oblique': '/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf',
         'DejaVu Serif Bold': '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
         'DejaVu Serif': '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf',
+        'DejaVu Serif Bold Italic': '/usr/share/fonts/truetype/dejavu/DejaVuSerif-BoldItalic.ttf',
+        'DejaVu Serif Italic': '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf',
         'DejaVu Sans Mono Bold': '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf',
+        'DejaVu Sans Mono': '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',
+        'DejaVu Sans Mono Oblique': '/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Oblique.ttf',
     }
 
     def __init__(self, assets_dir: str = None):

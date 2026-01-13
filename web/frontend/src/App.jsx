@@ -119,7 +119,7 @@ function App() {
       {/* Footer */}
       <footer className="bg-gray-800 border-t border-gray-700 mt-12">
         <div className="max-w-7xl mx-auto px-4 py-4 text-center text-gray-500 text-sm">
-          Kometizarr v1.0.7 ✨
+          Kometizarr v1.1.0 ✨
         </div>
       </footer>
     </div>

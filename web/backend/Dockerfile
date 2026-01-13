@@ -5,7 +5,7 @@ WORKDIR /app
 # Install system dependencies and fonts
 RUN apt-get update && apt-get install -y \
     gcc \
-    fonts-dejavu-core \
+    fonts-dejavu \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements from backend
