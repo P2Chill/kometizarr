@@ -6,7 +6,7 @@ MIT License - Copyright (c) 2026 Kometizarr Contributors
 """
 
 from PIL import Image, ImageDraw, ImageFont
-from typing import Tuple, Dict, Optional, List
+from typing import Tuple, Dict, Optional, List, Any
 from pathlib import Path
 
 
@@ -105,7 +105,7 @@ class MultiRatingBadge:
         ratings: Dict[str, float],
         poster_size: Tuple[int, int],
         position: str = 'northeast',
-        badge_style: Optional[Dict[str, any]] = None
+        badge_style: Optional[Dict[str, Any]] = None
     ) -> Image.Image:
         """
         Create a badge with multiple rating sources
@@ -332,7 +332,7 @@ class MultiRatingBadge:
         ratings: Dict[str, float],
         output_path: str,
         position: str = 'northeast',
-        badge_style: Optional[Dict[str, any]] = None
+        badge_style: Optional[Dict[str, Any]] = None
     ) -> Image.Image:
         """
         Apply multi-rating badge to poster

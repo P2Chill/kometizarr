@@ -4,7 +4,7 @@ Kometizarr Web UI - FastAPI Backend
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 import asyncio
 import json
 import logging
@@ -81,7 +81,7 @@ class ProcessRequest(BaseModel):
     force: bool = False
     limit: Optional[int] = None
     rating_sources: Optional[Dict[str, bool]] = None  # Which ratings to show
-    badge_style: Optional[Dict[str, any]] = None  # Badge styling options
+    badge_style: Optional[Dict[str, Any]] = None  # Badge styling options
 
 
 class LibraryStats(BaseModel):

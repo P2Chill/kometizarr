@@ -8,7 +8,7 @@ MIT License - Copyright (c) 2026 Kometizarr Contributors
 import logging
 import time
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from plexapi.server import PlexServer
 from plexapi.library import LibrarySection
 
@@ -34,7 +34,7 @@ class PlexPosterManager:
         omdb_api_key: Optional[str] = None,
         mdblist_api_key: Optional[str] = None,
         backup_dir: str = './data/kometizarr_backups',
-        badge_style: Optional[Dict[str, any]] = None,
+        badge_style: Optional[Dict[str, Any]] = None,
         dry_run: bool = False,
         rating_sources: Optional[Dict[str, bool]] = None
     ):
