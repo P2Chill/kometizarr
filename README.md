@@ -4,7 +4,7 @@
 
 Kometizarr automatically adds gorgeous multi-source rating badges to your Plex movie and TV show posters. No more messy YAML configs, no database risks, just clean Python that works.
 
-![Kometizarr Demo](docs/the_dark_knight.jpg)
+![Kometizarr Demo](docs/12_monkeys.jpg)
 
 ## ✨ Features
 
@@ -46,20 +46,22 @@ Kometizarr automatically adds gorgeous multi-source rating badges to your Plex m
 
 ## 🖼️ Screenshots
 
-### Rating Overlay Examples
+### NEW: 4-Badge Independent Positioning (v1.1.0)
 
-**High Rated Movie** - The Dark Knight
-![The Dark Knight](docs/the_dark_knight.jpg)
+**High Rated Classic** - 12 Monkeys (IMDb 8.0, TMDB 7.6, RT 88%/88%)
+![12 Monkeys](docs/12_monkeys.jpg)
 
-**Mixed Ratings** - 2 Fast 2 Furious
-![2 Fast 2 Furious](docs/2_fast_2_furious.jpg)
+**Mixed Ratings** - 2 Guns (IMDb 6.7, TMDB 6.5, RT 66%/64%)
+![2 Guns](docs/2_guns.jpg)
 
-**Popular Movie** - Inception
-![Inception](docs/inception.jpg)
+**High Audience Score** - #Alive (IMDb 6.3, TMDB 7.2, RT 63%/88%)
+![#Alive](docs/numberalive.jpg)
 
-> **Dynamic Logo System:** RT logos automatically change based on score:
-> - **Critic ≥60%:** Fresh tomato 🍅 | **<60%:** Rotten splat 💥
-> - **Audience ≥60%:** Fresh popcorn 🍿 | **<60%:** Spilled popcorn 🍿💔
+> **4-Badge System:** Each rating source positioned independently with custom styling
+> - **Independent positioning** - Place each badge anywhere on the poster
+> - **Visual alignment guides** - Grid overlay for precise placement
+> - **11 font options** - DejaVu Sans/Serif/Mono in Bold/Regular/Italic
+> - **Dynamic RT logos:** Fresh tomato (≥60%) / Rotten splat (<60%) for critics, Fresh popcorn (≥60%) / Spilled (< 60%) for audience
 
 ## 🚀 Quick Start
 
