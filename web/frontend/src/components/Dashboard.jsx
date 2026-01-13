@@ -17,6 +17,16 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
       rt_audience: true
     }
   })
+  const [badgeStyle, setBadgeStyle] = useState(() => {
+    // Load from localStorage or use defaults
+    const saved = localStorage.getItem('kometizarr_badge_style')
+    return saved ? JSON.parse(saved) : {
+      badge_width_percent: 35,  // Percentage of poster width
+      font_size_multiplier: 1.0, // Multiplier for font sizes
+      rating_color: '#FFD700',   // Gold color (default)
+      background_opacity: 128    // 0-255, default 128 (50%)
+    }
+  })
 
   useEffect(() => {
     fetchLibraries()
@@ -64,6 +74,12 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     localStorage.setItem('kometizarr_rating_sources', JSON.stringify(updated))
   }
 
+  const updateBadgeStyle = (key, value) => {
+    const updated = { ...badgeStyle, [key]: value }
+    setBadgeStyle(updated)
+    localStorage.setItem('kometizarr_badge_style', JSON.stringify(updated))
+  }
+
   const startProcessing = async () => {
     if (!selectedLibrary) return
 
@@ -76,6 +92,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
           position,
           force,
           rating_sources: ratingSources,
+          badge_style: badgeStyle,  // Include badge styling options
         }),
       })
 
@@ -327,6 +344,99 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                 ⚠️ At least one rating source must be selected
               </div>
             )}
+          </div>
+
+          {/* Badge Styling Options */}
+          <div>
+            <label className="block text-sm font-medium mb-3">Badge Styling (Optional)</label>
+            <div className="space-y-4 bg-gray-900 rounded-lg p-4">
+              {/* Badge Size */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-2">
+                  Badge Size: {badgeStyle.badge_width_percent}% of poster width
+                </label>
+                <input
+                  type="range"
+                  min="20"
+                  max="50"
+                  step="1"
+                  value={badgeStyle.badge_width_percent}
+                  onChange={(e) => updateBadgeStyle('badge_width_percent', parseInt(e.target.value))}
+                  className="w-full accent-blue-500"
+                />
+              </div>
+
+              {/* Font Size */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-2">
+                  Font Size: {badgeStyle.font_size_multiplier.toFixed(1)}x
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={badgeStyle.font_size_multiplier}
+                  onChange={(e) => updateBadgeStyle('font_size_multiplier', parseFloat(e.target.value))}
+                  className="w-full accent-blue-500"
+                />
+              </div>
+
+              {/* Rating Color */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-2">
+                  Rating Text Color
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={badgeStyle.rating_color}
+                    onChange={(e) => updateBadgeStyle('rating_color', e.target.value)}
+                    className="w-12 h-10 rounded border border-gray-700 bg-gray-800 cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-300 font-mono">{badgeStyle.rating_color}</span>
+                  <button
+                    onClick={() => updateBadgeStyle('rating_color', '#FFD700')}
+                    className="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700"
+                  >
+                    Reset to Gold
+                  </button>
+                </div>
+              </div>
+
+              {/* Background Opacity */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-2">
+                  Background Opacity: {Math.round((badgeStyle.background_opacity / 255) * 100)}%
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="255"
+                  step="5"
+                  value={badgeStyle.background_opacity}
+                  onChange={(e) => updateBadgeStyle('background_opacity', parseInt(e.target.value))}
+                  className="w-full accent-blue-500"
+                />
+              </div>
+
+              {/* Reset Button */}
+              <button
+                onClick={() => {
+                  const defaults = {
+                    badge_width_percent: 35,
+                    font_size_multiplier: 1.0,
+                    rating_color: '#FFD700',
+                    background_opacity: 128
+                  }
+                  setBadgeStyle(defaults)
+                  localStorage.setItem('kometizarr_badge_style', JSON.stringify(defaults))
+                }}
+                className="w-full text-xs px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 transition"
+              >
+                ↺ Reset All to Defaults
+              </button>
+            </div>
           </div>
 
           {/* Action Buttons */}

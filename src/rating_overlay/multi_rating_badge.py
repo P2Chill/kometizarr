@@ -104,7 +104,8 @@ class MultiRatingBadge:
         self,
         ratings: Dict[str, float],
         poster_size: Tuple[int, int],
-        position: str = 'northeast'
+        position: str = 'northeast',
+        badge_style: Optional[Dict[str, any]] = None
     ) -> Image.Image:
         """
         Create a badge with multiple rating sources
@@ -113,15 +114,25 @@ class MultiRatingBadge:
             ratings: Dict like {'tmdb': 7.2, 'imdb': 7.5, 'rt': 85}
             poster_size: (width, height) of poster
             position: Badge position
+            badge_style: Optional styling options (badge_width_percent, font_size_multiplier, rating_color, background_opacity)
 
         Returns:
             PIL Image with transparent background
         """
         poster_width, poster_height = poster_size
 
-        # Badge size scales with poster width (35% of poster width - cleaner, more compact)
-        # Reduced from 45% after removing text labels for a sleeker look
-        badge_width = int(poster_width * 0.35)
+        # Apply custom styling or use defaults
+        style = badge_style or {}
+        badge_width_percent = style.get('badge_width_percent', 35) / 100  # Convert percentage to decimal
+        font_multiplier = style.get('font_size_multiplier', 1.0)
+        rating_color_hex = style.get('rating_color', '#FFD700')  # Gold
+        background_opacity = style.get('background_opacity', 128)
+
+        # Convert hex color to RGB tuple
+        rating_color = tuple(int(rating_color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (255,)
+
+        # Badge size scales with poster width (customizable)
+        badge_width = int(poster_width * badge_width_percent)
 
         # Calculate height based on number of ratings
         # Scale row height proportionally with badge width
@@ -139,12 +150,12 @@ class MultiRatingBadge:
         draw.rounded_rectangle(
             [(0, 0), (badge_width, badge_height)],
             radius=corner_radius,
-            fill=(0, 0, 0, 128)  # Semi-transparent black (50% opacity)
+            fill=(0, 0, 0, background_opacity)  # Customizable opacity
         )
 
-        # Load fonts - scale with badge size for consistency
-        font_large_size = int(badge_width * 0.20)  # 20% of badge width
-        font_small_size = int(badge_width * 0.10)  # 10% of badge width
+        # Load fonts - scale with badge size and custom multiplier
+        font_large_size = int(badge_width * 0.20 * font_multiplier)  # 20% of badge width * multiplier
+        font_small_size = int(badge_width * 0.10 * font_multiplier)  # 10% of badge width * multiplier
 
         try:
             font_large = ImageFont.truetype(
@@ -163,7 +174,8 @@ class MultiRatingBadge:
             self._draw_rating_row(
                 badge, draw, source, rating,
                 y_offset, badge_width, row_height,
-                font_large, font_small, badge_width  # Pass badge_width for scaling
+                font_large, font_small, badge_width,  # Pass badge_width for scaling
+                rating_color  # Pass custom rating color
             )
             y_offset += row_height
 
@@ -180,7 +192,8 @@ class MultiRatingBadge:
         row_height: int,
         font_large: ImageFont.FreeTypeFont,
         font_small: ImageFont.FreeTypeFont,
-        scale_width: int  # Badge width for scaling
+        scale_width: int,  # Badge width for scaling
+        rating_color: Tuple[int, int, int, int] = (255, 215, 0, 255)  # Default gold
     ):
         """Draw a single rating row with logo and score"""
         x_padding = int(scale_width * 0.03)  # Scale padding
@@ -275,7 +288,7 @@ class MultiRatingBadge:
                 (rating_x - total_width, rating_y),
                 rating_number,
                 font_large,
-                (255, 215, 0, 255),  # Gold color
+                rating_color,  # Custom rating color
                 shadow_offset=shadow_large,
                 anchor="lm"
             )
@@ -308,7 +321,7 @@ class MultiRatingBadge:
                 (rating_x - text_width, rating_y),
                 rating_text,
                 font_large,
-                (255, 215, 0, 255),  # Gold color
+                rating_color,  # Custom rating color
                 shadow_offset=shadow_large,
                 anchor="lm"
             )
@@ -318,7 +331,8 @@ class MultiRatingBadge:
         poster_path: str,
         ratings: Dict[str, float],
         output_path: str,
-        position: str = 'northeast'
+        position: str = 'northeast',
+        badge_style: Optional[Dict[str, any]] = None
     ) -> Image.Image:
         """
         Apply multi-rating badge to poster
@@ -328,6 +342,7 @@ class MultiRatingBadge:
             ratings: Dict of ratings {'tmdb': 7.2, 'imdb': 7.5, 'rt_critic': 85, 'rt_audience': 92}
             output_path: Output path
             position: Badge position
+            badge_style: Optional styling options
 
         Returns:
             PIL Image
@@ -340,7 +355,8 @@ class MultiRatingBadge:
         badge = self.create_multi_rating_badge(
             ratings=ratings,
             poster_size=(poster_width, poster_height),
-            position=position
+            position=position,
+            badge_style=badge_style
         )
 
         badge_width, badge_height = badge.size

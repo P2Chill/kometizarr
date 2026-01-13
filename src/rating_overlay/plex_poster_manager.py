@@ -34,7 +34,7 @@ class PlexPosterManager:
         omdb_api_key: Optional[str] = None,
         mdblist_api_key: Optional[str] = None,
         backup_dir: str = './data/kometizarr_backups',
-        badge_style: str = 'default',
+        badge_style: Optional[Dict[str, any]] = None,
         dry_run: bool = False,
         rating_sources: Optional[Dict[str, bool]] = None
     ):
@@ -48,7 +48,7 @@ class PlexPosterManager:
             tmdb_api_key: TMDB API key
             omdb_api_key: Optional OMDb API key
             backup_dir: Directory for poster backups
-            badge_style: Badge style ('default', 'imdb', 'minimal', etc.)
+            badge_style: Optional dict with styling options (size, font, color, opacity)
             dry_run: If True, preview operations without applying
             rating_sources: Optional dict to control which ratings to show
                            e.g. {'tmdb': True, 'imdb': True, 'rt_critic': False, 'rt_audience': False}
@@ -59,6 +59,7 @@ class PlexPosterManager:
         self.library_name = library_name
         self.dry_run = dry_run
         self.rating_sources = rating_sources or {}
+        self.badge_style = badge_style or {}  # Store badge styling options
 
         # Connect to Plex
         self.server = PlexServer(plex_url, plex_token)
@@ -272,7 +273,8 @@ class PlexPosterManager:
                 poster_path=str(original_path),
                 ratings=ratings,
                 output_path=str(overlay_path),
-                position=position
+                position=position,
+                badge_style=self.badge_style  # Pass custom styling options
             )
 
             # Save overlay version to backup

@@ -81,6 +81,7 @@ class ProcessRequest(BaseModel):
     force: bool = False
     limit: Optional[int] = None
     rating_sources: Optional[Dict[str, bool]] = None  # Which ratings to show
+    badge_style: Optional[Dict[str, any]] = None  # Badge styling options
 
 
 class LibraryStats(BaseModel):
@@ -342,7 +343,8 @@ async def process_library_background(request: ProcessRequest):
             mdblist_api_key=os.getenv('MDBLIST_API_KEY'),
             backup_dir='/backups',
             dry_run=False,
-            rating_sources=request.rating_sources
+            rating_sources=request.rating_sources,
+            badge_style=request.badge_style  # Pass badge styling options
         )
 
         all_items = manager.library.all()
