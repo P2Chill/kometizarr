@@ -32,10 +32,10 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     // Load from localStorage or use defaults
     const saved = localStorage.getItem('kometizarr_badge_style')
     return saved ? JSON.parse(saved) : {
-      badge_width_percent: 35,  // Percentage of poster width
-      font_size_multiplier: 1.0, // Multiplier for font sizes
-      rating_color: '#FFD700',   // Gold color (default)
-      background_opacity: 128    // 0-255, default 128 (50%)
+      individual_badge_size: 12,  // Individual badge size (% of poster width)
+      font_size_multiplier: 1.0,  // Multiplier for font sizes
+      rating_color: '#FFD700',    // Gold color (default)
+      background_opacity: 128     // 0-255, default 128 (50%)
     }
   })
 
@@ -495,20 +495,25 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
           <div>
             <label className="block text-sm font-medium mb-3">Badge Styling (Optional)</label>
             <div className="space-y-4 bg-gray-900 rounded-lg p-4">
-              {/* Badge Size */}
+              {/* Individual Badge Size */}
               <div>
                 <label className="text-xs text-gray-400 block mb-2">
-                  Badge Size: {badgeStyle.badge_width_percent}% of poster width
+                  Badge Size: {badgeStyle.individual_badge_size}% of poster width (per badge)
                 </label>
                 <input
                   type="range"
-                  min="20"
-                  max="50"
+                  min="8"
+                  max="20"
                   step="1"
-                  value={badgeStyle.badge_width_percent}
-                  onChange={(e) => updateBadgeStyle('badge_width_percent', parseInt(e.target.value))}
+                  value={badgeStyle.individual_badge_size}
+                  onChange={(e) => updateBadgeStyle('individual_badge_size', parseInt(e.target.value))}
                   className="w-full accent-blue-500"
                 />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Tiny</span>
+                  <span>Default (12%)</span>
+                  <span>Large</span>
+                </div>
               </div>
 
               {/* Font Size */}
