@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class PosterBackupManager:
     """Manage poster backups before applying overlays"""
 
-    def __init__(self, backup_dir: str = './data/kometizarr_backups'):
+    def __init__(self, backup_dir: str = '/backups'):
         """
         Initialize backup manager
 
