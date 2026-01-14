@@ -9,7 +9,7 @@ Kometizarr automatically adds gorgeous multi-source rating badges to your Plex m
 ## ✨ Features
 
 ### 🎯 Multi-Source Rating Overlays
-- **4 independent rating badges** (NEW in v1.1.0):
+- **4 independent rating badges** (NEW in v1.1.1):
   - 🎬 **TMDB** ratings (movies and TV shows)
   - ⭐ **IMDb** ratings (via OMDb API)
   - 🍅 **Rotten Tomatoes Critic** scores (via MDBList)
@@ -46,7 +46,7 @@ Kometizarr automatically adds gorgeous multi-source rating badges to your Plex m
 
 ## 🖼️ Screenshots
 
-### NEW: 4-Badge Independent Positioning (v1.1.0)
+### NEW: 4-Badge Independent Positioning (v1.1.1)
 
 **High Rated Classic** - 12 Monkeys (IMDb 8.0, TMDB 7.6, RT 88%/88%)
 ![12 Monkeys](docs/12_monkeys.jpg)
@@ -124,7 +124,7 @@ Open `http://localhost:3001` - done in 5 seconds! 🎉
 
 **Alternative registries:**
 - **Docker Hub:** Replace `ghcr.io/p2chill/` with `p2chill/`
-- **Version pinning:** Replace `:latest` with `:v1.1.0` for stable releases
+- **Version pinning:** Replace `:latest` with `:v1.1.1` for stable releases
 
 #### Option B: Clone Repository (For Development)
 
@@ -472,7 +472,7 @@ manager.process_library()  # Preview without applying
 - [x] **10-second countdown** - Completion screen with countdown before returning to dashboard
   - Prevents accidental navigation away from completion stats
   - Skip button to return immediately
-- [x] **4-Badge Independent Positioning** (v1.1.0) - Each rating source can be positioned separately
+- [x] **4-Badge Independent Positioning** (v1.1.1) - Each rating source can be positioned separately
   - Visual alignment guides with live grid overlay
   - Per-badge customization (font, color, opacity, size)
   - 11 font choices (DejaVu Sans/Serif/Mono variants)
