@@ -4,7 +4,7 @@
 
 Kometizarr automatically adds gorgeous multi-source rating badges to your Plex movie and TV show posters. No more messy YAML configs, no database risks, just clean Python that works.
 
-![Kometizarr Demo](docs/12_monkeys.jpg)
+![Kometizarr Demo](docs/beforeafter.jpg)
 
 ## ✨ Features
 
@@ -529,3 +529,4 @@ MIT License - See LICENSE file for details.
 ---
 
 **Made with ❤️ for the Plex community**
+
