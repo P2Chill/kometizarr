@@ -296,7 +296,7 @@ Same API, just use `library_name='TV Shows'` - works identically!
 ## 📊 Performance
 
 **Tested on 2,363 movie library:**
-- **Processing speed:** ~0.7-1.1 movies/second
+- **Processing speed:** ~.5-4 movies/second depending on your CPU
 - **Total time:** ~35-55 minutes for full library
 - **API limits:** Respects TMDB (40 req/10s) and MDBList limits
 - **Memory usage:** Minimal (processes one at a time)
@@ -529,4 +529,5 @@ MIT License - See LICENSE file for details.
 ---
 
 **Made with ❤️ for the Plex community**
+
 
