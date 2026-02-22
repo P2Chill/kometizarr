@@ -35,6 +35,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     return saved ? JSON.parse(saved) : {
       individual_badge_size: 12,  // Individual badge size (% of poster width)
       font_size_multiplier: 1.0,  // Multiplier for font sizes
+      logo_size_multiplier: 1.0,  // Multiplier for logo within badge
       rating_color: '#FFD700',    // Gold color (default)
       background_opacity: 128,    // 0-255, default 128 (50%)
       font_family: 'DejaVu Sans Bold'  // Font family
@@ -353,7 +354,12 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                       const badgeSizePercent = badgeStyle.individual_badge_size || 12
                       const badgeWidth = (badgeSizePercent / 100) * 120  // Scale to SVG viewBox
                       const badgeHeight = badgeWidth * 1.4  // 1.4 aspect ratio
-                      const fontSize = (badgeWidth / 14) * 8  // Scale font with badge size
+                      const logoMultiplier = badgeStyle.logo_size_multiplier || 1.0
+                      const fontMultiplier = badgeStyle.font_size_multiplier || 1.0
+                      // Logo occupies top 60% of badge, scaled by logo_size_multiplier
+                      const logoAreaHeight = badgeHeight * 0.6 * Math.min(logoMultiplier, 1.0)
+                      // Font size applies to bottom 40% (rating number), scaled by font_size_multiplier
+                      const fontSize = (badgeWidth / 14) * 8 * fontMultiplier
                       const opacity = (badgeStyle.background_opacity || 128) / 255
 
                       // Map font family to CSS font-family for SVG
@@ -382,29 +388,9 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                               className="cursor-move"
                               onMouseDown={(e) => handleBadgeMouseDown(e, 'tmdb')}
                             >
-                              <rect
-                                x={(badgePositions.tmdb.x / 100) * 120}
-                                y={(badgePositions.tmdb.y / 100) * 168}
-                                width={badgeWidth}
-                                height={badgeHeight}
-                                fill="#000"
-                                fillOpacity={opacity}
-                                rx="2"
-                              />
-                              <text
-                                x={(badgePositions.tmdb.x / 100) * 120 + badgeWidth / 2}
-                                y={(badgePositions.tmdb.y / 100) * 168 + badgeHeight / 2}
-                                fontSize={fontSize}
-                                fill={badgeStyle.rating_color || '#FFD700'}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                fontFamily={fontFamily}
-                                fontStyle={fontStyle}
-                                fontWeight={fontWeight}
-                                className="pointer-events-none select-none"
-                              >
-                                T
-                              </text>
+                              <rect x={(badgePositions.tmdb.x / 100) * 120} y={(badgePositions.tmdb.y / 100) * 168} width={badgeWidth} height={badgeHeight} fill="#000" fillOpacity={opacity} rx="2" />
+                              <rect x={(badgePositions.tmdb.x / 100) * 120 + badgeWidth * 0.1} y={(badgePositions.tmdb.y / 100) * 168 + badgeHeight * 0.05} width={badgeWidth * 0.8} height={logoAreaHeight * 0.85} fill="#4a9eff" fillOpacity={0.35} rx="1" className="pointer-events-none" />
+                              <text x={(badgePositions.tmdb.x / 100) * 120 + badgeWidth / 2} y={(badgePositions.tmdb.y / 100) * 168 + badgeHeight * 0.80} fontSize={fontSize} fill={badgeStyle.rating_color || '#FFD700'} textAnchor="middle" dominantBaseline="middle" fontFamily={fontFamily} fontStyle={fontStyle} fontWeight={fontWeight} className="pointer-events-none select-none">T</text>
                             </g>
                           )}
 
@@ -413,29 +399,9 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                               className="cursor-move"
                               onMouseDown={(e) => handleBadgeMouseDown(e, 'imdb')}
                             >
-                              <rect
-                                x={(badgePositions.imdb.x / 100) * 120}
-                                y={(badgePositions.imdb.y / 100) * 168}
-                                width={badgeWidth}
-                                height={badgeHeight}
-                                fill="#000"
-                                fillOpacity={opacity}
-                                rx="2"
-                              />
-                              <text
-                                x={(badgePositions.imdb.x / 100) * 120 + badgeWidth / 2}
-                                y={(badgePositions.imdb.y / 100) * 168 + badgeHeight / 2}
-                                fontSize={fontSize}
-                                fill={badgeStyle.rating_color || '#FFD700'}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                fontFamily={fontFamily}
-                                fontStyle={fontStyle}
-                                fontWeight={fontWeight}
-                                className="pointer-events-none select-none"
-                              >
-                                I
-                              </text>
+                              <rect x={(badgePositions.imdb.x / 100) * 120} y={(badgePositions.imdb.y / 100) * 168} width={badgeWidth} height={badgeHeight} fill="#000" fillOpacity={opacity} rx="2" />
+                              <rect x={(badgePositions.imdb.x / 100) * 120 + badgeWidth * 0.1} y={(badgePositions.imdb.y / 100) * 168 + badgeHeight * 0.05} width={badgeWidth * 0.8} height={logoAreaHeight * 0.85} fill="#f5c518" fillOpacity={0.35} rx="1" className="pointer-events-none" />
+                              <text x={(badgePositions.imdb.x / 100) * 120 + badgeWidth / 2} y={(badgePositions.imdb.y / 100) * 168 + badgeHeight * 0.80} fontSize={fontSize} fill={badgeStyle.rating_color || '#FFD700'} textAnchor="middle" dominantBaseline="middle" fontFamily={fontFamily} fontStyle={fontStyle} fontWeight={fontWeight} className="pointer-events-none select-none">I</text>
                             </g>
                           )}
 
@@ -444,29 +410,9 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                               className="cursor-move"
                               onMouseDown={(e) => handleBadgeMouseDown(e, 'rt_critic')}
                             >
-                              <rect
-                                x={(badgePositions.rt_critic.x / 100) * 120}
-                                y={(badgePositions.rt_critic.y / 100) * 168}
-                                width={badgeWidth}
-                                height={badgeHeight}
-                                fill="#000"
-                                fillOpacity={opacity}
-                                rx="2"
-                              />
-                              <text
-                                x={(badgePositions.rt_critic.x / 100) * 120 + badgeWidth / 2}
-                                y={(badgePositions.rt_critic.y / 100) * 168 + badgeHeight / 2}
-                                fontSize={fontSize}
-                                fill={badgeStyle.rating_color || '#FFD700'}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                fontFamily={fontFamily}
-                                fontStyle={fontStyle}
-                                fontWeight={fontWeight}
-                                className="pointer-events-none select-none"
-                              >
-                                C
-                              </text>
+                              <rect x={(badgePositions.rt_critic.x / 100) * 120} y={(badgePositions.rt_critic.y / 100) * 168} width={badgeWidth} height={badgeHeight} fill="#000" fillOpacity={opacity} rx="2" />
+                              <rect x={(badgePositions.rt_critic.x / 100) * 120 + badgeWidth * 0.1} y={(badgePositions.rt_critic.y / 100) * 168 + badgeHeight * 0.05} width={badgeWidth * 0.8} height={logoAreaHeight * 0.85} fill="#fa320a" fillOpacity={0.35} rx="1" className="pointer-events-none" />
+                              <text x={(badgePositions.rt_critic.x / 100) * 120 + badgeWidth / 2} y={(badgePositions.rt_critic.y / 100) * 168 + badgeHeight * 0.80} fontSize={fontSize} fill={badgeStyle.rating_color || '#FFD700'} textAnchor="middle" dominantBaseline="middle" fontFamily={fontFamily} fontStyle={fontStyle} fontWeight={fontWeight} className="pointer-events-none select-none">C</text>
                             </g>
                           )}
 
@@ -475,29 +421,9 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                               className="cursor-move"
                               onMouseDown={(e) => handleBadgeMouseDown(e, 'rt_audience')}
                             >
-                              <rect
-                                x={(badgePositions.rt_audience.x / 100) * 120}
-                                y={(badgePositions.rt_audience.y / 100) * 168}
-                                width={badgeWidth}
-                                height={badgeHeight}
-                                fill="#000"
-                                fillOpacity={opacity}
-                                rx="2"
-                              />
-                              <text
-                                x={(badgePositions.rt_audience.x / 100) * 120 + badgeWidth / 2}
-                                y={(badgePositions.rt_audience.y / 100) * 168 + badgeHeight / 2}
-                                fontSize={fontSize}
-                                fill={badgeStyle.rating_color || '#FFD700'}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                fontFamily={fontFamily}
-                                fontStyle={fontStyle}
-                                fontWeight={fontWeight}
-                                className="pointer-events-none select-none"
-                              >
-                                A
-                              </text>
+                              <rect x={(badgePositions.rt_audience.x / 100) * 120} y={(badgePositions.rt_audience.y / 100) * 168} width={badgeWidth} height={badgeHeight} fill="#000" fillOpacity={opacity} rx="2" />
+                              <rect x={(badgePositions.rt_audience.x / 100) * 120 + badgeWidth * 0.1} y={(badgePositions.rt_audience.y / 100) * 168 + badgeHeight * 0.05} width={badgeWidth * 0.8} height={logoAreaHeight * 0.85} fill="#fa320a" fillOpacity={0.25} rx="1" className="pointer-events-none" />
+                              <text x={(badgePositions.rt_audience.x / 100) * 120 + badgeWidth / 2} y={(badgePositions.rt_audience.y / 100) * 168 + badgeHeight * 0.80} fontSize={fontSize} fill={badgeStyle.rating_color || '#FFD700'} textAnchor="middle" dominantBaseline="middle" fontFamily={fontFamily} fontStyle={fontStyle} fontWeight={fontWeight} className="pointer-events-none select-none">A</text>
                             </g>
                           )}
                         </>
@@ -588,6 +514,22 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                     />
                   </div>
 
+                  {/* Logo Size */}
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">
+                      Logo Size: {(badgeStyle.logo_size_multiplier || 1.0).toFixed(1)}x
+                    </label>
+                    <input
+                      type="range"
+                      min="0.3"
+                      max="1.5"
+                      step="0.1"
+                      value={badgeStyle.logo_size_multiplier || 1.0}
+                      onChange={(e) => updateBadgeStyle('logo_size_multiplier', parseFloat(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+
                   {/* Font and Color - Side by Side */}
                   <div className="grid grid-cols-2 gap-3">
                     {/* Font Family */}
@@ -653,6 +595,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                       const defaults = {
                         individual_badge_size: 12,
                         font_size_multiplier: 1.0,
+                        logo_size_multiplier: 1.0,
                         rating_color: '#FFD700',
                         background_opacity: 128,
                         font_family: 'DejaVu Sans Bold'

@@ -224,6 +224,7 @@ class MultiRatingBadge:
         style = badge_style or {}
         badge_size_percent = style.get('individual_badge_size', 12) / 100  # 12% of poster width by default
         font_multiplier = style.get('font_size_multiplier', 1.0)
+        logo_multiplier = style.get('logo_size_multiplier', 1.0)
         rating_color_hex = style.get('rating_color', '#FFD700')  # Gold
         background_opacity = style.get('background_opacity', 128)
 
@@ -259,8 +260,8 @@ class MultiRatingBadge:
         padding = int(badge_width * 0.1)
 
         if logo:
-            # Calculate logo size to fit in top section
-            max_logo_size = min(badge_width - (padding * 2), logo_section_height - padding)
+            # Calculate logo size to fit in top section, scaled by logo_size_multiplier
+            max_logo_size = int(min(badge_width - (padding * 2), logo_section_height - padding) * logo_multiplier)
 
             # Resize logo maintaining aspect ratio
             orig_width, orig_height = logo.size
