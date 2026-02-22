@@ -260,8 +260,19 @@ class MultiRatingBadge:
         padding = int(badge_width * 0.1)
 
         if logo:
+            # RT logos are bold graphic icons that appear much larger than TMDB/IMDb wordmarks
+            # at the same pixel size — normalize so they feel visually equal at 1x
+            LOGO_BASE_SCALE = {
+                'tmdb': 1.00,
+                'imdb': 1.00,
+                'rt_fresh': 0.72,
+                'rt_rotten': 0.72,
+                'rt_audience_fresh': 0.72,
+                'rt_audience_rotten': 0.72,
+            }
+            base_scale = LOGO_BASE_SCALE.get(logo_key, 1.0)
             # Calculate logo size to fit in top section, scaled by logo_size_multiplier
-            max_logo_size = int(min(badge_width - (padding * 2), logo_section_height - padding) * logo_multiplier)
+            max_logo_size = int(min(badge_width - (padding * 2), logo_section_height - padding) * logo_multiplier * base_scale)
 
             # Resize logo maintaining aspect ratio
             orig_width, orig_height = logo.size

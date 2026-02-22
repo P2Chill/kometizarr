@@ -522,7 +522,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                     <input
                       type="range"
                       min="0.3"
-                      max="1.5"
+                      max="2.0"
                       step="0.1"
                       value={badgeStyle.logo_size_multiplier || 1.0}
                       onChange={(e) => updateBadgeStyle('logo_size_multiplier', parseFloat(e.target.value))}
