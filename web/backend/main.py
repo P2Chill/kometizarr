@@ -444,6 +444,107 @@ async def get_status():
     return processing_state
 
 
+class PreviewRequest(BaseModel):
+    library_name: str
+    badge_positions: Optional[Dict[str, Dict[str, float]]] = None
+    rating_sources: Optional[Dict[str, bool]] = None
+    badge_style: Optional[Dict[str, Any]] = None
+    count: int = 3
+
+
+@app.post("/api/preview")
+async def preview_posters(request: PreviewRequest):
+    """
+    Render overlaid posters for a random sample of library items.
+    Returns base64 images — no Plex upload, no backup.
+    """
+    import random
+    import base64
+    import requests as req
+    from pathlib import Path
+
+    try:
+        manager = PlexPosterManager(
+            plex_url=os.getenv('PLEX_URL'),
+            plex_token=os.getenv('PLEX_TOKEN'),
+            library_name=request.library_name,
+            tmdb_api_key=os.getenv('TMDB_API_KEY'),
+            omdb_api_key=os.getenv('OMDB_API_KEY'),
+            mdblist_api_key=os.getenv('MDBLIST_API_KEY'),
+            backup_dir='/backups',
+            dry_run=False,
+            rating_sources=request.rating_sources,
+            badge_style=request.badge_style,
+        )
+
+        all_items = manager.library.all()
+        sample = random.sample(all_items, min(request.count, len(all_items)))
+
+        results = []
+        for item in sample:
+            try:
+                # Fetch ratings using same priority order as process_movie
+                plex_ratings = manager._extract_plex_ratings(item)
+                ratings = {}
+                for key in ('tmdb', 'imdb', 'rt_critic', 'rt_audience'):
+                    if key in plex_ratings:
+                        ratings[key] = plex_ratings[key]
+
+                if request.rating_sources:
+                    ratings = {k: v for k, v in ratings.items() if request.rating_sources.get(k, True)}
+
+                if not ratings or all(v == 0 for v in ratings.values()):
+                    continue
+
+                # Use existing backup poster if available, otherwise download
+                poster_path = manager.backup_manager.get_original_poster(manager.library_name, item.title)
+
+                if not poster_path:
+                    poster_url = item.posterUrl
+                    if not poster_url:
+                        continue
+                    response = req.get(
+                        poster_url,
+                        headers={'X-Plex-Token': manager.plex_token},
+                        timeout=15
+                    )
+                    if response.status_code != 200:
+                        continue
+                    tmp_src = Path(f'/tmp/kometizarr_prev_src_{item.ratingKey}.jpg')
+                    tmp_src.write_bytes(response.content)
+                    poster_path = str(tmp_src)
+
+                # Apply overlay (no upload)
+                output_path = f'/tmp/kometizarr_prev_{item.ratingKey}.jpg'
+                manager.multi_rating_badge.apply_to_poster(
+                    poster_path=str(poster_path),
+                    ratings=ratings,
+                    output_path=output_path,
+                    badge_style=manager.badge_style,
+                    badge_positions=request.badge_positions,
+                )
+
+                with open(output_path, 'rb') as f:
+                    image_b64 = base64.b64encode(f.read()).decode()
+
+                results.append({
+                    'title': item.title,
+                    'year': getattr(item, 'year', None),
+                    'ratings': ratings,
+                    'image': image_b64,
+                })
+
+            except Exception as e:
+                logger.warning(f"Preview skipped for {item.title}: {e}")
+                continue
+
+        return {'previews': results}
+
+    except Exception as e:
+        logger.error(f"Preview failed: {e}")
+        return {'error': str(e), 'previews': []}
+
+
 @app.websocket("/ws/progress")
 async def websocket_progress(websocket: WebSocket):
     """WebSocket endpoint for live progress updates"""
