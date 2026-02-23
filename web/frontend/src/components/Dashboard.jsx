@@ -66,6 +66,16 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
 
   useEffect(() => {
     fetchLibraries()
+    // Sync localStorage badge settings to server on mount so webhook/cron work
+    // without requiring the user to manually interact with the UI after upgrading
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(s => {
+        if (!s.badge_positions || !s.badge_style) {
+          persistBadgeSettings({ badge_positions: badgePositions, badge_style: badgeStyle, rating_sources: ratingSources })
+        }
+      })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {

@@ -999,10 +999,44 @@ async def _webhook_queue_worker():
             webhook_queue.task_done()
 
 
+DEFAULT_BADGE_POSITIONS = {
+    "tmdb":        {"x": 2,  "y": 2},
+    "imdb":        {"x": 70, "y": 2},
+    "rt_critic":   {"x": 2,  "y": 78},
+    "rt_audience": {"x": 70, "y": 78},
+}
+
+DEFAULT_BADGE_STYLE = {
+    "individual_badge_size": 12,
+    "font_size_multiplier": 1.0,
+    "logo_size_multiplier": 1.0,
+    "rating_color": "#FFD700",
+    "background_opacity": 128,
+    "font_family": "DejaVu Sans Bold",
+}
+
+DEFAULT_RATING_SOURCES = {
+    "tmdb": True, "imdb": True, "rt_critic": True, "rt_audience": True,
+}
+
+
 @app.on_event("startup")
 async def startup_event():
     scheduler.start()
     settings = _load_settings()
+    # Seed badge defaults so webhook/cron work out of the box without UI interaction
+    changed = False
+    if "badge_positions" not in settings:
+        settings["badge_positions"] = DEFAULT_BADGE_POSITIONS
+        changed = True
+    if "badge_style" not in settings:
+        settings["badge_style"] = DEFAULT_BADGE_STYLE
+        changed = True
+    if "rating_sources" not in settings:
+        settings["rating_sources"] = DEFAULT_RATING_SOURCES
+        changed = True
+    if changed:
+        _save_settings(settings)
     _reschedule_cron(settings)
     asyncio.create_task(_webhook_queue_worker())
 

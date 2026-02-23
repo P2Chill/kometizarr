@@ -482,7 +482,7 @@ manager.process_library()  # Preview without applying
 - [x] **Plex Webhook** (v1.2.0) — Process new items automatically the moment they're added
 - [x] **Multi-library selection** (v1.2.0) — Checkbox selection for cron, webhook, and dashboard
 - [x] **Settings tab** (v1.2.0) — Full automation config in the Web UI, persisted across restarts
-- [x] **Webhook/cron badge fix** (v1.2.1) — Webhook and cron now use the badge style & positions configured in the UI
+- [x] **Webhook/cron badge fix** (v1.2.1) — Webhook and cron now use the badge style & positions configured in the UI (defaults to 4-corner layout on first run)
 
 ### Planned 🚧
 - [ ] **Per-episode ratings for TV shows** — Season/episode level overlay support
