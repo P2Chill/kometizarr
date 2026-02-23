@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 
 function Dashboard({ onStartProcessing, onLibrarySelect }) {
   const [libraries, setLibraries] = useState([])
-  const [selectedLibrary, setSelectedLibrary] = useState(null)
+  const [selectedLibrary, setSelectedLibrary] = useState(null)   // for stats / preview
+  const [selectedLibraries, setSelectedLibraries] = useState([]) // for processing (names)
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [position, setPosition] = useState('northwest')  // Keep for backward compat display
@@ -51,9 +52,6 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
   useEffect(() => {
     if (selectedLibrary) {
       fetchStats(selectedLibrary.name)
-      if (onLibrarySelect) {
-        onLibrarySelect(selectedLibrary)
-      }
     }
   }, [selectedLibrary])
 
@@ -65,6 +63,7 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
         setLibraries(data.libraries)
         if (data.libraries.length > 0) {
           setSelectedLibrary(data.libraries[0])
+          setSelectedLibraries(data.libraries.map(l => l.name)) // select all by default
         }
       }
     } catch (error) {
@@ -82,6 +81,14 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     } catch (error) {
       console.error('Failed to fetch stats:', error)
     }
+  }
+
+  const toggleLibrarySelection = (lib) => {
+    setSelectedLibrary(lib) // always update stats to last-clicked
+    setSelectedLibraries(prev =>
+      prev.includes(lib.name) ? prev.filter(n => n !== lib.name) : [...prev, lib.name]
+    )
+    if (onLibrarySelect) onLibrarySelect(lib)
   }
 
   const toggleRatingSource = (source) => {
@@ -208,9 +215,8 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
   }
 
   const startProcessing = async () => {
-    if (!selectedLibrary) return
+    if (selectedLibraries.length === 0) return
 
-    // Filter badge_positions to only include enabled sources
     const enabledBadgePositions = {}
     Object.keys(ratingSources).forEach(source => {
       if (ratingSources[source] && badgePositions[source]) {
@@ -218,18 +224,24 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
       }
     })
 
+    const commonOptions = {
+      position,
+      badge_positions: enabledBadgePositions,
+      force,
+      rating_sources: ratingSources,
+      badge_style: badgeStyle,
+    }
+
     try {
-      const res = await fetch('/api/process', {
+      const isBatch = selectedLibraries.length > 1
+      const res = await fetch(isBatch ? '/api/process-batch' : '/api/process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          library_name: selectedLibrary.name,
-          position,  // Legacy, kept for backward compat
-          badge_positions: enabledBadgePositions,  // New: individual badge positions
-          force,
-          rating_sources: ratingSources,
-          badge_style: badgeStyle,  // Include badge styling options
-        }),
+        body: JSON.stringify(
+          isBatch
+            ? { library_names: selectedLibraries, ...commonOptions }
+            : { library_name: selectedLibraries[0], ...commonOptions }
+        ),
       })
 
       const data = await res.json()
@@ -315,26 +327,51 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     <div className="space-y-6">
       {/* Library Selection */}
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <h2 className="text-xl font-semibold mb-4">Select Library</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {libraries.map((lib) => (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Select Libraries</h2>
+          {libraries.length > 1 && (
             <button
-              key={lib.name}
-              onClick={() => setSelectedLibrary(lib)}
-              className={`p-4 rounded-lg border-2 transition ${
-                selectedLibrary?.name === lib.name
-                  ? 'border-blue-500 bg-blue-900/20'
-                  : 'border-gray-700 hover:border-gray-600'
-              }`}
+              onClick={() =>
+                setSelectedLibraries(
+                  selectedLibraries.length === libraries.length ? [] : libraries.map(l => l.name)
+                )
+              }
+              className="text-xs text-gray-400 hover:text-gray-200 transition"
             >
-              <div className="text-left">
-                <div className="font-semibold">{lib.name}</div>
+              {selectedLibraries.length === libraries.length ? 'Deselect all' : 'Select all'}
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {libraries.map((lib) => {
+            const isSelected = selectedLibraries.includes(lib.name)
+            const isPrimary = selectedLibrary?.name === lib.name
+            return (
+              <button
+                key={lib.name}
+                onClick={() => toggleLibrarySelection(lib)}
+                className={`p-4 rounded-lg border-2 transition relative text-left ${
+                  isSelected
+                    ? 'border-blue-500 bg-blue-900/20'
+                    : 'border-gray-700 hover:border-gray-600'
+                }`}
+              >
+                {/* Checkbox indicator */}
+                <div className={`absolute top-3 right-3 w-5 h-5 rounded border-2 flex items-center justify-center text-xs font-bold transition ${
+                  isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-500'
+                }`}>
+                  {isSelected && '✓'}
+                </div>
+                <div className="font-semibold pr-7">{lib.name}</div>
                 <div className="text-sm text-gray-400 mt-1">
                   {lib.type === 'movie' ? '🎬' : '📺'} {lib.count} items
                 </div>
-              </div>
-            </button>
-          ))}
+                {isPrimary && isSelected && (
+                  <div className="text-xs text-blue-400 mt-1">Stats shown below</div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -745,10 +782,10 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
             </button>
             <button
               onClick={startProcessing}
-              disabled={!selectedLibrary}
+              disabled={selectedLibraries.length === 0}
               className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition"
             >
-              ▶️ Process
+              {selectedLibraries.length > 1 ? `▶️ Process (${selectedLibraries.length})` : '▶️ Process'}
             </button>
           </div>
         </div>

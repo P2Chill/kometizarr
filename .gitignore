@@ -65,6 +65,7 @@ Thumbs.db
 
 # Project progress tracking (personal notes)
 kometizarr_progress.md
+AGENTS.md
 
 # Terraform
 terraform/.terraform/
@@ -73,9 +74,6 @@ terraform/*.tfstate.*
 terraform/.terraform.lock.hcl
 terraform/terraform.tfvars
 terraform/*.auto.tfvars
-
-# Docker
-.dockerignore
 
 # Node modules (for web frontend)
 web/frontend/node_modules/
@@ -86,3 +84,6 @@ web/frontend/.vite/
 data/
 landing-page/
 restore_original_posters.py
+
+# Director Claude
+.director-context/

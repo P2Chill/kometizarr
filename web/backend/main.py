@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Kometizarr API", version="1.0.7")
+app = FastAPI(title="Kometizarr API", version="1.2.0")
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -58,6 +58,9 @@ processing_state = {
 # Processing start time (stored separately - not sent over WebSocket)
 processing_start_time = None
 
+# Webhook item queue — serializes single-item processing requests
+webhook_queue: asyncio.Queue = asyncio.Queue()
+
 # Restore state (sent over WebSocket - must be JSON serializable)
 restore_state = {
     "is_restoring": False,
@@ -84,6 +87,16 @@ class ProcessRequest(BaseModel):
     limit: Optional[int] = None
     rating_sources: Optional[Dict[str, bool]] = None  # Which ratings to show
     badge_style: Optional[Dict[str, Any]] = None  # Badge styling options
+    rating_key: Optional[str] = None  # If set, process only this specific Plex item
+
+
+class ProcessBatchRequest(BaseModel):
+    library_names: List[str]
+    position: str = "northwest"
+    badge_positions: Optional[Dict[str, Dict[str, float]]] = None
+    force: bool = False
+    rating_sources: Optional[Dict[str, bool]] = None
+    badge_style: Optional[Dict[str, Any]] = None
 
 
 class LibraryStats(BaseModel):
@@ -96,7 +109,7 @@ class LibraryStats(BaseModel):
 @app.get("/")
 async def root():
     """Health check"""
-    return {"status": "ok", "app": "Kometizarr API", "version": "1.0.7"}
+    return {"status": "ok", "app": "Kometizarr API", "version": "1.2.0"}
 
 
 @app.get("/api/libraries")
@@ -173,6 +186,30 @@ async def start_processing(request: ProcessRequest):
     asyncio.create_task(process_library_background(request))
 
     return {"status": "started", "library": request.library_name}
+
+
+@app.post("/api/process-batch")
+async def start_processing_batch(request: ProcessBatchRequest):
+    """Process multiple libraries sequentially."""
+    if processing_state["is_processing"]:
+        return {"error": "Processing already in progress"}
+    if not request.library_names:
+        return {"error": "No libraries specified"}
+
+    async def run_batch():
+        for lib_name in request.library_names:
+            single = ProcessRequest(
+                library_name=lib_name,
+                position=request.position,
+                badge_positions=request.badge_positions,
+                force=request.force,
+                rating_sources=request.rating_sources,
+                badge_style=request.badge_style,
+            )
+            await process_library_background(single)
+
+    asyncio.create_task(run_batch())
+    return {"status": "started", "libraries": request.library_names}
 
 
 @app.post("/api/restore")
@@ -349,9 +386,12 @@ async def process_library_background(request: ProcessRequest):
             badge_style=request.badge_style  # Pass badge styling options
         )
 
-        all_items = manager.library.all()
-        if request.limit:
-            all_items = all_items[:request.limit]
+        if request.rating_key:
+            all_items = [manager.library.fetchItem(int(request.rating_key))]
+        else:
+            all_items = manager.library.all()
+            if request.limit:
+                all_items = all_items[:request.limit]
 
         processing_state["total"] = len(all_items)
 
@@ -815,6 +855,281 @@ async def get_library_studios(library_name: str):
         }
     except Exception as e:
         return {"error": str(e)}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Settings, Fresh Posters, Delete Backups, Cron, Webhook
+# ─────────────────────────────────────────────────────────────────────────────
+
+from pathlib import Path
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+SETTINGS_PATH = Path('/app/kometizarr/data/settings.json')
+
+scheduler = AsyncIOScheduler()
+
+fresh_posters_state = {
+    "is_running": False,
+    "library": None,
+    "progress": 0,
+    "total": 0,
+    "restored": 0,
+    "failed": 0,
+    "current_item": None,
+}
+
+
+def _load_settings() -> dict:
+    defaults = {
+        "cron_normal": {"enabled": False, "libraries": [], "schedule": "0 3 * * *"},
+        "cron_force":  {"enabled": False, "libraries": [], "schedule": "0 3 * * 0"},
+        "webhook": {"enabled": False, "libraries": []},
+    }
+    if not SETTINGS_PATH.exists():
+        return defaults
+    data = json.loads(SETTINGS_PATH.read_text())
+    # Migrate old single-library format
+    for key in ("cron_normal", "cron_force"):
+        block = data.get(key, {})
+        if "library" in block and "libraries" not in block:
+            old = block.pop("library")
+            block["libraries"] = [] if not old or old == "__all__" else [old]
+    if "webhook" in data and "library" in data["webhook"] and "libraries" not in data["webhook"]:
+        old = data["webhook"].pop("library")
+        data["webhook"]["enabled"] = bool(old)
+        data["webhook"]["libraries"] = [] if not old or old == "__all__" else [old]
+    return data
+
+
+def _save_settings(settings: dict):
+    SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SETTINGS_PATH.write_text(json.dumps(settings, indent=2))
+
+
+def _add_cron_job(scheduler, job_id: str, schedule: str, libraries: list, force: bool):
+    parts = schedule.split()
+    if len(parts) != 5:
+        return
+    trigger = CronTrigger(
+        minute=parts[0], hour=parts[1],
+        day=parts[2], month=parts[3], day_of_week=parts[4]
+    )
+    scheduler.add_job(
+        _cron_run_libraries,
+        trigger=trigger,
+        args=[libraries, force],
+        id=job_id,
+        replace_existing=True,
+    )
+    label = ", ".join(libraries) if libraries else "all"
+    logger.info(f"Cron [{job_id}] scheduled: {schedule} for [{label}] (force={force})")
+
+
+def _reschedule_cron(settings: dict):
+    """Apply both cron configs to the scheduler."""
+    scheduler.remove_all_jobs()
+    for key, force in [("cron_normal", False), ("cron_force", True)]:
+        cron = settings.get(key, {})
+        if cron.get("enabled") and cron.get("schedule"):
+            try:
+                _add_cron_job(scheduler, key, cron["schedule"], cron.get("libraries", []), force)
+            except Exception as e:
+                logger.error(f"Failed to schedule {key}: {e}")
+
+
+async def _run_libraries_sequentially(libraries: list, force: bool):
+    """Fetch all Plex library names if list is empty, then process each sequentially."""
+    if not libraries:
+        try:
+            from plexapi.server import PlexServer
+            server = PlexServer(os.getenv('PLEX_URL'), os.getenv('PLEX_TOKEN'))
+            libraries = [lib.title for lib in server.library.sections()]
+        except Exception as e:
+            logger.error(f"Cron: failed to fetch library list: {e}")
+            return
+    label = "force" if force else "normal"
+    for lib_name in libraries:
+        logger.info(f"Cron ({label}): processing {lib_name}")
+        await process_library_background(ProcessRequest(library_name=lib_name, force=force))
+
+
+async def _cron_run_libraries(libraries: list, force: bool = False):
+    """Called by APScheduler — starts processing if not already running."""
+    if processing_state["is_processing"]:
+        logger.info("Cron: skipping, processing already in progress")
+        return
+    asyncio.create_task(_run_libraries_sequentially(libraries, force))
+
+
+async def _webhook_queue_worker():
+    """Processes webhook-queued items one at a time, waiting if processing is busy."""
+    while True:
+        library_name, rating_key, item_title = await webhook_queue.get()
+        try:
+            # Wait if processing is already running (e.g. cron or manual run)
+            while processing_state["is_processing"]:
+                await asyncio.sleep(2)
+            logger.info(f"Webhook queue: processing {library_name} / {item_title} (key={rating_key})")
+            await process_library_background(
+                ProcessRequest(library_name=library_name, rating_key=rating_key)
+            )
+        except Exception as e:
+            logger.error(f"Webhook queue worker error: {e}")
+        finally:
+            webhook_queue.task_done()
+
+
+@app.on_event("startup")
+async def startup_event():
+    scheduler.start()
+    settings = _load_settings()
+    _reschedule_cron(settings)
+    asyncio.create_task(_webhook_queue_worker())
+
+
+@app.get("/api/settings")
+async def get_settings():
+    settings = _load_settings()
+    for key in ("cron_normal", "cron_force"):
+        job = scheduler.get_job(key)
+        settings.setdefault(key, {})["next_run"] = job.next_run_time.isoformat() if job and job.next_run_time else None
+    return settings
+
+
+@app.put("/api/settings")
+async def update_settings(settings: dict):
+    _save_settings(settings)
+    _reschedule_cron(settings)
+    result = {"status": "saved"}
+    for key in ("cron_normal", "cron_force"):
+        job = scheduler.get_job(key)
+        result[f"{key}_next_run"] = job.next_run_time.isoformat() if job and job.next_run_time else None
+    return result
+
+
+# ── Fresh Posters ─────────────────────────────────────────────────────────────
+
+class FreshPostersRequest(BaseModel):
+    library_name: str
+
+
+@app.post("/api/fetch-fresh-posters")
+async def start_fetch_fresh_posters(request: FreshPostersRequest):
+    global fresh_posters_state
+    if fresh_posters_state["is_running"]:
+        return {"error": "Already running"}
+    asyncio.create_task(_fetch_fresh_posters_task(request.library_name))
+    return {"status": "started"}
+
+
+@app.get("/api/fetch-fresh-posters/status")
+async def get_fresh_posters_status():
+    return fresh_posters_state
+
+
+async def _fetch_fresh_posters_task(library_name: str):
+    global fresh_posters_state
+    fresh_posters_state.update({
+        "is_running": True, "library": library_name,
+        "progress": 0, "total": 0,
+        "restored": 0, "failed": 0, "current_item": None,
+    })
+    try:
+        from plexapi.server import PlexServer
+        plex_url = os.getenv('PLEX_URL')
+        plex_token = os.getenv('PLEX_TOKEN')
+        server = PlexServer(plex_url, plex_token)
+        library = server.library.section(library_name)
+        all_items = library.all()
+        fresh_posters_state["total"] = len(all_items)
+        logger.info(f"Fetch Fresh Posters: {library_name} ({len(all_items)} items)")
+
+        for i, item in enumerate(all_items, 1):
+            fresh_posters_state["progress"] = i
+            fresh_posters_state["current_item"] = item.title
+            try:
+                posters = item.posters()
+                original = next((p for p in posters if 'upload' not in p.ratingKey), None)
+                if original:
+                    original.select()
+                    fresh_posters_state["restored"] += 1
+                    logger.debug(f"✓ {item.title}: reset to original poster")
+                else:
+                    fresh_posters_state["failed"] += 1
+            except Exception as e:
+                fresh_posters_state["failed"] += 1
+                logger.warning(f"Failed for {item.title}: {e}")
+            await asyncio.sleep(0.05)
+
+        logger.info(f"Fresh Posters done: {fresh_posters_state['restored']} restored, {fresh_posters_state['failed']} failed")
+    except Exception as e:
+        logger.error(f"Fetch Fresh Posters failed: {e}")
+    finally:
+        fresh_posters_state["is_running"] = False
+        fresh_posters_state["current_item"] = None
+
+
+# ── Delete Backups ────────────────────────────────────────────────────────────
+
+@app.delete("/api/backups")
+async def delete_backups(library_name: str, confirm: str = ""):
+    if confirm != "DELETE":
+        return {"error": "Must pass confirm=DELETE"}
+    import shutil
+    backup_dir = Path("/backups") / library_name
+    if not backup_dir.exists():
+        return {"error": f"No backups found for {library_name}"}
+    try:
+        item_count = sum(1 for _ in backup_dir.iterdir())
+        shutil.rmtree(backup_dir)
+        logger.info(f"Deleted backups for {library_name} ({item_count} items)")
+        return {"status": "deleted", "items": item_count}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Plex Webhook ──────────────────────────────────────────────────────────────
+
+from fastapi import Form as FastAPIForm
+
+
+@app.post("/webhook/plex")
+async def plex_webhook(payload: str = FastAPIForm(...)):
+    """Receive Plex webhooks — triggers processing on library.new events."""
+    try:
+        data = json.loads(payload)
+        event = data.get("event", "")
+        logger.info(f"Plex webhook: {event}")
+
+        if event == "library.new":
+            settings = _load_settings()
+            webhook = settings.get("webhook", {})
+            if not webhook.get("enabled"):
+                return {"status": "ignored", "reason": "webhook disabled"}
+
+            metadata = data.get("Metadata", {})
+            target_library = metadata.get("librarySectionTitle")
+            if not target_library:
+                return {"status": "ignored", "reason": "could not determine library from event"}
+
+            # If libraries list is non-empty, only process the listed libraries
+            allowed = webhook.get("libraries", [])
+            if allowed and target_library not in allowed:
+                return {"status": "ignored", "reason": f"library {target_library!r} not in webhook scope"}
+
+            rating_key = str(metadata.get("ratingKey", "")) or None
+            item_title = metadata.get("title", "unknown")
+
+            # Enqueue — worker processes items sequentially, no drops on bulk imports
+            await webhook_queue.put((target_library, rating_key, item_title))
+            queue_size = webhook_queue.qsize()
+            logger.info(f"Webhook queued: {target_library} / {item_title} (key={rating_key}, queue={queue_size})")
+            return {"status": "queued", "library": target_library, "item": item_title, "queue_size": queue_size}
+
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":

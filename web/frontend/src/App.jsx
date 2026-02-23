@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Dashboard from './components/Dashboard'
 import Collections from './components/Collections'
 import ProcessingProgress from './components/ProcessingProgress'
+import Settings from './components/Settings'
 
 function App() {
   const [processing, setProcessing] = useState(false)
@@ -97,6 +98,16 @@ function App() {
                 >
                   📚 Collections
                 </button>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm transition ${
+                    activeTab === 'settings'
+                      ? 'border-blue-500 text-blue-400'
+                      : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
+                  }`}
+                >
+                  ⚙️ Settings
+                </button>
               </nav>
             </div>
 
@@ -109,8 +120,10 @@ function App() {
                 }}
                 onLibrarySelect={setSelectedLibrary}
               />
-            ) : (
+            ) : activeTab === 'collections' ? (
               <Collections selectedLibrary={selectedLibrary} />
+            ) : (
+              <Settings />
             )}
           </>
         )}

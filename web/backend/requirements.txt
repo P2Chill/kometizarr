@@ -7,3 +7,4 @@ pydantic-settings==2.1.0
 plexapi==4.15.7
 Pillow==10.2.0
 requests==2.31.0
+apscheduler==3.10.4
