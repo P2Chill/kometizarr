@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function Dashboard({ onStartProcessing, onLibrarySelect }) {
   const [libraries, setLibraries] = useState([])
@@ -44,6 +44,25 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
       font_family: 'DejaVu Sans Bold'  // Font family
     }
   })
+
+  // Keep a ref so handleMouseUp can read latest badgePositions without stale closure
+  const badgePositionsRef = useRef(badgePositions)
+  useEffect(() => { badgePositionsRef.current = badgePositions }, [badgePositions])
+
+  // Persist badge settings to server so webhook/cron use the same settings as the UI
+  const persistBadgeSettings = async (patch) => {
+    try {
+      const res = await fetch('/api/settings')
+      const current = await res.json()
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...current, ...patch }),
+      })
+    } catch (e) {
+      console.warn('Failed to persist badge settings to server:', e)
+    }
+  }
 
   useEffect(() => {
     fetchLibraries()
@@ -95,12 +114,14 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     const updated = { ...ratingSources, [source]: !ratingSources[source] }
     setRatingSources(updated)
     localStorage.setItem('kometizarr_rating_sources', JSON.stringify(updated))
+    persistBadgeSettings({ rating_sources: updated })
   }
 
   const updateBadgeStyle = (key, value) => {
     const updated = { ...badgeStyle, [key]: value }
     setBadgeStyle(updated)
     localStorage.setItem('kometizarr_badge_style', JSON.stringify(updated))
+    persistBadgeSettings({ badge_style: updated })
   }
 
   const handlePosterDrag = (e, badgeSource) => {
@@ -210,6 +231,10 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
   }
 
   const handleMouseUp = () => {
+    if (activeDragBadge) {
+      // Save final drag position to server (use ref to get latest state)
+      persistBadgeSettings({ badge_positions: badgePositionsRef.current })
+    }
     setActiveDragBadge(null)
     setAlignmentGuides([])  // Clear alignment guides
   }

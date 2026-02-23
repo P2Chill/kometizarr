@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Kometizarr API", version="1.2.0")
+app = FastAPI(title="Kometizarr API", version="1.2.1")
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -109,7 +109,7 @@ class LibraryStats(BaseModel):
 @app.get("/")
 async def root():
     """Health check"""
-    return {"status": "ok", "app": "Kometizarr API", "version": "1.2.0"}
+    return {"status": "ok", "app": "Kometizarr API", "version": "1.2.1"}
 
 
 @app.get("/api/libraries")
@@ -948,10 +948,20 @@ async def _run_libraries_sequentially(libraries: list, force: bool):
         except Exception as e:
             logger.error(f"Cron: failed to fetch library list: {e}")
             return
+    settings = _load_settings()
+    badge_style = settings.get("badge_style")
+    badge_positions = settings.get("badge_positions")
+    rating_sources = settings.get("rating_sources")
     label = "force" if force else "normal"
     for lib_name in libraries:
         logger.info(f"Cron ({label}): processing {lib_name}")
-        await process_library_background(ProcessRequest(library_name=lib_name, force=force))
+        await process_library_background(ProcessRequest(
+            library_name=lib_name,
+            force=force,
+            badge_style=badge_style,
+            badge_positions=badge_positions,
+            rating_sources=rating_sources,
+        ))
 
 
 async def _cron_run_libraries(libraries: list, force: bool = False):
@@ -970,10 +980,19 @@ async def _webhook_queue_worker():
             # Wait if processing is already running (e.g. cron or manual run)
             while processing_state["is_processing"]:
                 await asyncio.sleep(2)
+            # Load current badge settings so webhook uses same styling as the UI
+            settings = _load_settings()
+            badge_style = settings.get("badge_style")
+            badge_positions = settings.get("badge_positions")
+            rating_sources = settings.get("rating_sources")
             logger.info(f"Webhook queue: processing {library_name} / {item_title} (key={rating_key})")
-            await process_library_background(
-                ProcessRequest(library_name=library_name, rating_key=rating_key)
-            )
+            await process_library_background(ProcessRequest(
+                library_name=library_name,
+                rating_key=rating_key,
+                badge_style=badge_style,
+                badge_positions=badge_positions,
+                rating_sources=rating_sources,
+            ))
         except Exception as e:
             logger.error(f"Webhook queue worker error: {e}")
         finally:

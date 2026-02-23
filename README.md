@@ -134,7 +134,7 @@ Open `http://localhost:3001` — done in 5 seconds! 🎉
 
 **Alternative registries:**
 - **Docker Hub:** Replace `ghcr.io/p2chill/` with `p2chill/`
-- **Version pinning:** Replace `:latest` with `:v1.2.0` for stable releases
+- **Version pinning:** Replace `:latest` with `:v1.2.1` for stable releases
 
 #### Option B: Clone Repository (For Development)
 
@@ -482,6 +482,7 @@ manager.process_library()  # Preview without applying
 - [x] **Plex Webhook** (v1.2.0) — Process new items automatically the moment they're added
 - [x] **Multi-library selection** (v1.2.0) — Checkbox selection for cron, webhook, and dashboard
 - [x] **Settings tab** (v1.2.0) — Full automation config in the Web UI, persisted across restarts
+- [x] **Webhook/cron badge fix** (v1.2.1) — Webhook and cron now use the badge style & positions configured in the UI
 
 ### Planned 🚧
 - [ ] **Per-episode ratings for TV shows** — Season/episode level overlay support
