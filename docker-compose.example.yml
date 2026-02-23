@@ -1,0 +1,33 @@
+services:
+  backend:
+    image: ghcr.io/p2chill/kometizarr-backend:latest
+    container_name: kometizarr-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/backups:/backups                    # Poster backups (PERSISTENT - keep safe)
+      - ./data/appdata:/app/kometizarr/data        # Settings (cron, webhook config)
+    environment:
+      - PLEX_URL=http://YOUR_PLEX_IP:32400         # Use LAN IP, not localhost
+      - PLEX_TOKEN=YOUR_PLEX_TOKEN                 # https://support.plex.tv/articles/204059436
+      - TMDB_API_KEY=YOUR_TMDB_KEY                 # https://www.themoviedb.org/settings/api
+      - MDBLIST_API_KEY=YOUR_MDBLIST_KEY           # https://mdblist.com/ (for RT scores)
+      - OMDB_API_KEY=YOUR_OMDB_KEY                 # Optional: https://www.omdbapi.com/
+    restart: unless-stopped
+    networks:
+      - kometizarr
+
+  frontend:
+    image: ghcr.io/p2chill/kometizarr-frontend:latest
+    container_name: kometizarr-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - kometizarr
+
+networks:
+  kometizarr:
+    driver: bridge
