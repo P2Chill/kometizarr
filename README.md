@@ -87,7 +87,7 @@ The easiest way to use Kometizarr is with the Web UI — a beautiful dashboard w
 
 #### Option A: Direct Pull (No Clone Required) ⚡
 
-Create a `docker-compose.yml` file:
+Download [`docker-compose.example.yml`](docker-compose.example.yml), fill in your values, and rename it to `docker-compose.yml`. Or create it manually:
 
 ```yaml
 services:
