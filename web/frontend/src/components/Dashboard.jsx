@@ -464,8 +464,8 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                       const badgeHeight = badgeWidth * 1.4  // 1.4 aspect ratio
                       const logoMultiplier = badgeStyle.logo_size_multiplier || 1.0
                       const fontMultiplier = badgeStyle.font_size_multiplier || 1.0
-                      // Logo occupies top 60% of badge, scaled by logo_size_multiplier
-                      const logoAreaHeight = badgeHeight * 0.6 * Math.min(logoMultiplier, 1.0)
+                      // Logo occupies top 60% of badge, scaled by logo_size_multiplier (max 2.0 → full area)
+                      const logoAreaHeight = badgeHeight * 0.6 * Math.min(logoMultiplier / 2.0, 1.0)
                       // Font size applies to bottom 40% (rating number), scaled by font_size_multiplier
                       const fontSize = (badgeWidth / 14) * 8 * fontMultiplier
                       const opacity = (badgeStyle.background_opacity || 128) / 255
