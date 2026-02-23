@@ -98,7 +98,7 @@ services:
       - "8000:8000"
     volumes:
       - ./data/backups:/backups  # Poster backups (PERSISTENT)
-      - ./data/temp:/temp  # Temp processing
+      - ./data/appdata:/app/kometizarr/data  # Settings (cron, webhook config)
     environment:
       - PLEX_URL=http://YOUR_PLEX_IP:32400
       - PLEX_TOKEN=YOUR_PLEX_TOKEN
@@ -160,7 +160,6 @@ services:
       - ./:/app/kometizarr  # Mount entire project
       - ./web/backend:/app/backend  # Mount backend source for hot-reload (no rebuild needed)
       - ./data/backups:/backups  # Poster backups (PERSISTENT - survives reboots)
-      - ./data/temp:/temp  # Temp processing
     environment:
       - PLEX_URL=${PLEX_URL:-http://192.168.1.20:32400}
       - PLEX_TOKEN=${PLEX_TOKEN}
