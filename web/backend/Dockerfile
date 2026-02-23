@@ -19,7 +19,7 @@ COPY . /app/kometizarr
 COPY web/backend /app/backend
 
 # Set Python path to include kometizarr project
-ENV PYTHONPATH=/app/kometizarr:$PYTHONPATH
+ENV PYTHONPATH=/app/kometizarr
 
 EXPOSE 8000
 
