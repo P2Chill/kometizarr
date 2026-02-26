@@ -249,12 +249,12 @@ export default function Settings() {
   const [savedMsg, setSavedMsg] = useState('')
 
   // Fresh posters
-  const [freshLib, setFreshLib] = useState('')
+  const [freshLibs, setFreshLibs] = useState([])
   const [freshStatus, setFreshStatus] = useState(null)
   const [showFreshConfirm, setShowFreshConfirm] = useState(false)
 
   // Delete backups
-  const [deleteLib, setDeleteLib] = useState('')
+  const [deleteLibs, setDeleteLibs] = useState([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteResult, setDeleteResult] = useState(null)
 
@@ -299,25 +299,42 @@ export default function Settings() {
 
   const startFreshPosters = async () => {
     setShowFreshConfirm(false)
-    const res = await fetch('/api/fetch-fresh-posters', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ library_name: freshLib }),
-    })
-    const data = await res.json()
-    if (data.status === 'started') {
-      setFreshStatus({ is_running: true, library: freshLib, progress: 0, total: 0, restored: 0, failed: 0, current_item: null })
+    for (const lib of freshLibs) {
+      const res = await fetch('/api/fetch-fresh-posters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ library_name: lib }),
+      })
+      const data = await res.json()
+      if (data.status === 'started') {
+        setFreshStatus({ is_running: true, library: lib, progress: 0, total: 0, restored: 0, failed: 0, current_item: null })
+        // Wait for this library to finish before starting the next
+        await new Promise(resolve => {
+          const poll = setInterval(async () => {
+            const status = await fetch('/api/fetch-fresh-posters/status')
+            const s = await status.json()
+            setFreshStatus(s)
+            if (!s.is_running) { clearInterval(poll); resolve() }
+          }, 1000)
+        })
+      }
     }
   }
 
   const deleteBackups = async () => {
     setShowDeleteConfirm(false)
-    const res = await fetch(`/api/backups?library_name=${encodeURIComponent(deleteLib)}&confirm=DELETE`, { method: 'DELETE' })
-    const data = await res.json()
-    setDeleteResult(data)
+    let totalItems = 0
+    let lastError = null
+    for (const lib of deleteLibs) {
+      const res = await fetch(`/api/backups?library_name=${encodeURIComponent(lib)}&confirm=DELETE`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.error) lastError = data.error
+      else totalItems += data.items || 0
+    }
+    setDeleteResult(lastError ? { error: lastError } : { items: totalItems })
   }
 
-  const webhookUrl = `${window.location.protocol}//${window.location.hostname}:8000/webhook/plex`
+  const webhookUrl = `${window.location.origin}/webhook/plex`
   const [copied, setCopied] = useState(false)
   const copyWebhookUrl = () => {
     if (navigator.clipboard) {
@@ -457,16 +474,33 @@ export default function Settings() {
             Resets each item's active poster to the original TMDB/agent poster, removing uploaded overlays from Plex's view.
             Does not delete backups.
           </p>
-          <div className="flex gap-3 items-end">
-            <div className="flex-1">
-              <label className="text-xs text-gray-400 block mb-1">Library</label>
-              <select value={freshLib} onChange={e => setFreshLib(e.target.value)}
-                className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-white">
-                <option value="">Select library…</option>
-                {libraries.map(lib => <option key={lib.name} value={lib.name}>{lib.name}</option>)}
-              </select>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5">Libraries</label>
+              <div className="flex flex-wrap gap-2">
+                {libraries.map(lib => {
+                  const checked = freshLibs.includes(lib.name)
+                  return (
+                    <button
+                      key={lib.name}
+                      type="button"
+                      onClick={() => {
+                        setFreshLibs(prev => checked ? prev.filter(l => l !== lib.name) : [...prev, lib.name])
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition border ${
+                        checked
+                          ? 'bg-amber-700/60 border-amber-500 text-amber-200'
+                          : 'bg-gray-800 border-gray-600 text-gray-400 hover:border-gray-500'
+                      }`}
+                    >
+                      {checked ? '✓ ' : ''}{lib.name}
+                    </button>
+                  )
+                })}
+                {libraries.length === 0 && <span className="text-xs text-gray-500">No libraries loaded</span>}
+              </div>
             </div>
-            <button onClick={() => setShowFreshConfirm(true)} disabled={!freshLib || freshStatus?.is_running}
+            <button onClick={() => setShowFreshConfirm(true)} disabled={freshLibs.length === 0 || freshStatus?.is_running}
               className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white text-sm font-semibold rounded transition">
               {freshStatus?.is_running ? '⏳ Running…' : '↺ Fetch Fresh Posters'}
             </button>
@@ -504,16 +538,34 @@ export default function Settings() {
           <p className="text-xs text-gray-400 mb-3">
             Permanently deletes all backed-up original posters for the selected library.
           </p>
-          <div className="flex gap-3 items-end">
-            <div className="flex-1">
-              <label className="text-xs text-gray-400 block mb-1">Library</label>
-              <select value={deleteLib} onChange={e => { setDeleteLib(e.target.value); setDeleteResult(null) }}
-                className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-white">
-                <option value="">Select library…</option>
-                {libraries.map(lib => <option key={lib.name} value={lib.name}>{lib.name}</option>)}
-              </select>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5">Libraries</label>
+              <div className="flex flex-wrap gap-2">
+                {libraries.map(lib => {
+                  const checked = deleteLibs.includes(lib.name)
+                  return (
+                    <button
+                      key={lib.name}
+                      type="button"
+                      onClick={() => {
+                        setDeleteLibs(prev => checked ? prev.filter(l => l !== lib.name) : [...prev, lib.name])
+                        setDeleteResult(null)
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition border ${
+                        checked
+                          ? 'bg-red-700/60 border-red-500 text-red-200'
+                          : 'bg-gray-800 border-gray-600 text-gray-400 hover:border-gray-500'
+                      }`}
+                    >
+                      {checked ? '✓ ' : ''}{lib.name}
+                    </button>
+                  )
+                })}
+                {libraries.length === 0 && <span className="text-xs text-gray-500">No libraries loaded</span>}
+              </div>
             </div>
-            <button onClick={() => setShowDeleteConfirm(true)} disabled={!deleteLib}
+            <button onClick={() => setShowDeleteConfirm(true)} disabled={deleteLibs.length === 0}
               className="px-4 py-1.5 bg-red-700 hover:bg-red-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white text-sm font-semibold rounded transition">
               🗑 Delete Backups
             </button>
@@ -536,7 +588,7 @@ export default function Settings() {
       {/* Confirmation modals */}
       {showFreshConfirm && (
         <ConfirmModal
-          title={`Fetch Fresh Posters — ${freshLib}`}
+          title={`Fetch Fresh Posters — ${freshLibs.join(', ')}`}
           warning="Fetching fresh posters while backups are present will cause Kometizarr to skip those items on the next run. Only use this in case of problems, and always combine with Delete Backups. Proceed anyway?"
           confirmLabel="Fetch Fresh Posters"
           onConfirm={startFreshPosters}
@@ -546,7 +598,7 @@ export default function Settings() {
 
       {showDeleteConfirm && (
         <ConfirmModal
-          title={`Delete Backups — ${deleteLib}`}
+          title={`Delete Backups — ${deleteLibs.join(', ')}`}
           warning="Deleting backups while overlays are active will cause double overlays if you re-process without fetching fresh posters first. Only use this in case of problems, and always combine with Fetch Fresh Posters. Proceed anyway?"
           confirmLabel="Delete Backups"
           requireTyped="DELETE"
