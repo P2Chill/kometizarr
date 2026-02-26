@@ -85,5 +85,8 @@ data/
 landing-page/
 restore_original_posters.py
 
+# Nested repos (PRs/forks)
+unRAID-CA-templates/
+
 # Director Claude
 .director-context/
