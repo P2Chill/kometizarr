@@ -297,14 +297,14 @@ async def restore_library_background(request: ProcessRequest):
             restore_state["current_item"] = item.title
 
             # Skip if no backup exists
-            if not backup_manager.has_backup(request.library_name, item.title):
+            if not backup_manager.has_backup(request.library_name, item.title, year=item.year):
                 restore_state["skipped"] += 1
             # Skip if already showing original (no overlay applied)
-            elif not backup_manager.has_overlay(request.library_name, item.title):
+            elif not backup_manager.has_overlay(request.library_name, item.title, year=item.year):
                 restore_state["skipped"] += 1
             # Has backup AND has overlay, proceed with restore
             else:
-                if backup_manager.restore_original(request.library_name, item.title, item):
+                if backup_manager.restore_original(request.library_name, item.title, item, year=item.year):
                     restore_state["restored"] += 1
                 else:
                     restore_state["failed"] += 1
@@ -537,7 +537,7 @@ async def preview_posters(request: PreviewRequest):
                     continue
 
                 # Use existing backup poster if available, otherwise download
-                poster_path = manager.backup_manager.get_original_poster(manager.library_name, item.title)
+                poster_path = manager.backup_manager.get_original_poster(manager.library_name, item.title, year=item.year)
 
                 if not poster_path:
                     poster_url = item.posterUrl

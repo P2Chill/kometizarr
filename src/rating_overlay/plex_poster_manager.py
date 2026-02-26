@@ -168,7 +168,7 @@ class PlexPosterManager:
                 return False
 
             # Skip if overlay already applied (unless force=True)
-            if not force and self.backup_manager.has_overlay(self.library_name, movie.title):
+            if not force and self.backup_manager.has_overlay(self.library_name, movie.title, year=movie.year):
                 logger.debug(f"⏭️  {movie.title}: Already has overlay, skipping")
                 return None  # Return None to indicate skip (not success or failure)
 
@@ -264,7 +264,8 @@ class PlexPosterManager:
                 poster_url=poster_url,
                 item_metadata=metadata,
                 plex_token=self.plex_token,
-                force=False  # Never re-download - use existing backup
+                force=False,  # Never re-download - use existing backup
+                year=movie.year
             )
 
             if not original_path:
@@ -286,7 +287,8 @@ class PlexPosterManager:
             self.backup_manager.save_overlay_poster(
                 library_name=self.library_name,
                 item_title=movie.title,
-                overlay_image_path=str(overlay_path)
+                overlay_image_path=str(overlay_path),
+                year=movie.year
             )
 
             # Upload to Plex
@@ -411,7 +413,8 @@ class PlexPosterManager:
         return self.backup_manager.restore_original(
             library_name=self.library_name,
             item_title=movie_title,
-            plex_item=movie
+            plex_item=movie,
+            year=movie.year
         )
 
     def restore_library(self) -> int:
