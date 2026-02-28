@@ -56,22 +56,30 @@ Kometizarr automatically adds gorgeous multi-source rating badges to your Plex m
 
 ## 🖼️ Screenshots
 
-### 4-Badge Independent Positioning
+### Dashboard
+Library selection, stats, badge positioning with drag-and-drop, and processing options — all in one view.
 
-**High Rated Classic** - 12 Monkeys (IMDb 8.0, TMDB 7.6, RT 88%/88%)
+![Dashboard](docs/kometizarr_front_page.png)
+
+### Live Processing
+Real-time progress with WebSocket updates — success, failure, skipped, and remaining counts.
+
+![Processing](docs/processing.png)
+
+### Scheduled Processing & Webhook
+Two independent cron schedules plus Plex webhook — fully set-and-forget automation.
+
+![Settings](docs/cronjobs_and_webhook.png)
+
+### Collection Management
+Create decade, keyword, and studio collections with presets or custom keywords.
+
+![Collections](docs/collections.png)
+
+### 4-Badge Rating Overlay
+Each rating source (TMDB, IMDb, RT Critic, RT Audience) positioned independently with custom styling, dynamic RT logos, and per-badge font/color/size options.
+
 ![12 Monkeys](docs/12_monkeys.jpg)
-
-**Mixed Ratings** - 2 Guns (IMDb 6.7, TMDB 6.5, RT 66%/64%)
-![2 Guns](docs/2_guns.jpg)
-
-**High Audience Score** - #Alive (IMDb 6.3, TMDB 7.2, RT 63%/88%)
-![#Alive](docs/numberalive.jpg)
-
-> **4-Badge System:** Each rating source positioned independently with custom styling
-> - **Independent positioning** — Place each badge anywhere on the poster
-> - **Visual alignment guides** — Grid overlay for precise placement
-> - **11 font options** — DejaVu Sans/Serif/Mono in Bold/Regular/Italic
-> - **Dynamic RT logos:** Fresh tomato (≥60%) / Rotten splat (<60%) for critics, Fresh popcorn (≥60%) / Spilled (<60%) for audience
 
 ## 🚀 Quick Start
 
