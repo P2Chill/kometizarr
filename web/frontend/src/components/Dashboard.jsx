@@ -66,13 +66,32 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
 
   useEffect(() => {
     fetchLibraries()
-    // Sync localStorage badge settings to server on mount so webhook/cron work
-    // without requiring the user to manually interact with the UI after upgrading
+    // Sync badge settings between server and localStorage on mount.
+    // Server is source of truth (webhook/cron read from it).
+    // If server has settings, load them into component state.
+    // If server is missing settings, push localStorage defaults.
     fetch('/api/settings')
       .then(r => r.json())
       .then(s => {
-        if (!s.badge_positions || !s.badge_style) {
-          persistBadgeSettings({ badge_positions: badgePositions, badge_style: badgeStyle, rating_sources: ratingSources })
+        if (s.badge_positions) {
+          setBadgePositions(s.badge_positions)
+          localStorage.setItem('kometizarr_badge_positions', JSON.stringify(s.badge_positions))
+        }
+        if (s.badge_style) {
+          setBadgeStyle(s.badge_style)
+          localStorage.setItem('kometizarr_badge_style', JSON.stringify(s.badge_style))
+        }
+        if (s.rating_sources) {
+          setRatingSources(s.rating_sources)
+          localStorage.setItem('kometizarr_rating_sources', JSON.stringify(s.rating_sources))
+        }
+        // Push localStorage defaults for anything the server doesn't have yet
+        if (!s.badge_positions || !s.badge_style || !s.rating_sources) {
+          persistBadgeSettings({
+            badge_positions: s.badge_positions || badgePositions,
+            badge_style: s.badge_style || badgeStyle,
+            rating_sources: s.rating_sources || ratingSources,
+          })
         }
       })
       .catch(() => {})
