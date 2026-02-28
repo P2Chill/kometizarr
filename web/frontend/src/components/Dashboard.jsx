@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 
 function Dashboard({ onStartProcessing, onLibrarySelect }) {
   const [libraries, setLibraries] = useState([])
-  const [selectedLibrary, setSelectedLibrary] = useState(null)   // for stats / preview
+  const [selectedLibrary, setSelectedLibrary] = useState(null)   // for preview / restore
   const [selectedLibraries, setSelectedLibraries] = useState([]) // for processing (names)
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -79,10 +79,12 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
   }, [])
 
   useEffect(() => {
-    if (selectedLibrary) {
-      fetchStats(selectedLibrary.name)
+    if (selectedLibraries.length > 0) {
+      fetchAggregatedStats(selectedLibraries)
+    } else {
+      setStats(null)
     }
-  }, [selectedLibrary])
+  }, [selectedLibraries])
 
   const fetchLibraries = async () => {
     try {
@@ -102,21 +104,44 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
     }
   }
 
-  const fetchStats = async (libraryName) => {
+  const fetchAggregatedStats = async (libraryNames) => {
     try {
-      const res = await fetch(`/api/library/${libraryName}/stats`)
-      const data = await res.json()
-      setStats(data)
+      const results = await Promise.all(
+        libraryNames.map(name =>
+          fetch(`/api/library/${name}/stats`).then(r => r.json())
+        )
+      )
+      const aggregated = results.reduce(
+        (acc, data) => ({
+          total_items: acc.total_items + (data.total_items || 0),
+          processed_items: acc.processed_items + (data.processed_items || 0),
+        }),
+        { total_items: 0, processed_items: 0 }
+      )
+      aggregated.success_rate = aggregated.total_items > 0
+        ? ((aggregated.processed_items / aggregated.total_items) * 100).toFixed(1)
+        : '0.0'
+      setStats(aggregated)
     } catch (error) {
       console.error('Failed to fetch stats:', error)
     }
   }
 
   const toggleLibrarySelection = (lib) => {
-    setSelectedLibrary(lib) // always update stats to last-clicked
-    setSelectedLibraries(prev =>
-      prev.includes(lib.name) ? prev.filter(n => n !== lib.name) : [...prev, lib.name]
-    )
+    const isDeselecting = selectedLibraries.includes(lib.name)
+    const newSelected = isDeselecting
+      ? selectedLibraries.filter(n => n !== lib.name)
+      : [...selectedLibraries, lib.name]
+    setSelectedLibraries(newSelected)
+    // Update selectedLibrary for preview/restore: use clicked lib if selecting,
+    // otherwise fall back to first remaining selected library
+    if (!isDeselecting) {
+      setSelectedLibrary(lib)
+    } else if (newSelected.length > 0) {
+      setSelectedLibrary(libraries.find(l => l.name === newSelected[0]))
+    } else {
+      setSelectedLibrary(null)
+    }
     if (onLibrarySelect) onLibrarySelect(lib)
   }
 
@@ -366,11 +391,11 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
           <h2 className="text-xl font-semibold">Select Libraries</h2>
           {libraries.length > 1 && (
             <button
-              onClick={() =>
-                setSelectedLibraries(
-                  selectedLibraries.length === libraries.length ? [] : libraries.map(l => l.name)
-                )
-              }
+              onClick={() => {
+                const allSelected = selectedLibraries.length === libraries.length
+                setSelectedLibraries(allSelected ? [] : libraries.map(l => l.name))
+                setSelectedLibrary(allSelected ? null : libraries[0])
+              }}
               className="text-xs text-gray-400 hover:text-gray-200 transition"
             >
               {selectedLibraries.length === libraries.length ? 'Deselect all' : 'Select all'}
@@ -380,7 +405,6 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {libraries.map((lib) => {
             const isSelected = selectedLibraries.includes(lib.name)
-            const isPrimary = selectedLibrary?.name === lib.name
             return (
               <button
                 key={lib.name}
@@ -401,9 +425,6 @@ function Dashboard({ onStartProcessing, onLibrarySelect }) {
                 <div className="text-sm text-gray-400 mt-1">
                   {lib.type === 'movie' ? '🎬' : '📺'} {lib.count} items
                 </div>
-                {isPrimary && isSelected && (
-                  <div className="text-xs text-blue-400 mt-1">Stats shown below</div>
-                )}
               </button>
             )
           })}
